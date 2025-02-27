@@ -12,7 +12,7 @@ A fully electromagnetic 2.5-dimensional particle-in-cell code designed for simul
 - **Output:** The simulation generates SDDS-formatted files for use with elegant, facilitating further analysis and visualization.
 
 ## Documentation
-For a comprehensive overview, please refer to the **[Spiffe manual](https://ops.aps.anl.gov/manuals/spiffe_latest/spiffe.html)** which covers simulation algorithms, input formats, and output structures in detail.
+For a comprehensive overview, please refer to the **[spiffe manual](https://ops.aps.anl.gov/manuals/spiffe_latest/spiffe.html)** which covers simulation algorithms, input formats, and output structures in detail.
 
 ## Authors
 - M. Borland
