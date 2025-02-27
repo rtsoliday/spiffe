@@ -21,7 +21,7 @@ A typical workflow might look like this:
 
 2. Run the **spiffe** executable with the input file.
 
-3 Analyze the resulting SDDS output files with **elegant**.
+3. Analyze the resulting SDDS output files with **elegant**.
 
 For detailed instructions on creating input files, running simulations, and interpreting outputs, please consult the **[spiffe manual](https://ops.aps.anl.gov/manuals/spiffe_latest/spiffe.html)**.
 
