@@ -83,7 +83,7 @@ void process_cathode_definition(
 
   if (random_number_seed == 0)
     {
-      random_number_seed = (int)time((time_t)0);
+      random_number_seed = (int)time(NULL);
       random_number_seed = 2 * (random_number_seed / 2) + 1;
       printf("clock-generated random_number_seed = %d\n", random_number_seed);
     }

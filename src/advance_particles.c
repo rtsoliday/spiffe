@@ -75,7 +75,8 @@ void advance_particles(
   /*double fa, fb, fr, fl;*/
   double z0, r0, z, r, pz = 0, pr = 0, vz = 0, vr = 0, r_pphi = 0, vphi = 0, gamma, dtp, pphi;
   double pz0 = 0, pr0 = 0, r_pphi0 = 0, pphi0 = 0, r0Save, z0Save;
-  long ip, is, ib, iz, ir, n_lost, r_was_negative, is_lost, i;
+  long ip, is, ib, iz, ir, r_was_negative, is_lost, i;
+  //long n_lost;
   /*long longit_interp, radial_interp, nr, nz;*/
   short lossCode;
   double zmin, dz, dr, zmax, rmax;
@@ -129,7 +130,8 @@ void advance_particles(
   rmax = EM_problem->rmax;
   /*nz = EM_problem->nz;
     nr = EM_problem->nr;*/
-  n_lost = maxLost = 0;
+  //n_lost = 0;
+  maxLost = 0;
   /*longit_interp = EM_problem->modes&FL_LONGIT_INTERP;
     radial_interp = EM_problem->modes&FL_RADIAL_INTERP;*/
 
@@ -531,7 +533,7 @@ void advance_particles(
           beam->particleID[ip] = beam->particleID[beam->np];
           beam->status[ip] = beam->status[beam->np];
           ip--;
-          n_lost++;
+          //n_lost++;
           newLost++;
           continue;
         }

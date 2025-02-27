@@ -106,7 +106,8 @@ void sample_fields(
                    FIELDS *EM_problem)
 {
   long i_sample_defn, iz, ir = 0, iz0 = 0, iz1 = 0, ir0, ir1, ifld;
-  double value, **data = NULL, **data1;
+  //double value;
+  double **data = NULL, **data1;
   char buffer1[256], buffer2[256], buffer3[256];
   double fieldValue[6];
   double fieldSum[6];
@@ -846,10 +847,12 @@ void sample_fields(
                           sample_defn->fileInitialized = 1;
                           sample_defn->sample_index = 0;
                         }
+                      /*
                       value = 0;
                       for (iz = iz0; iz <= iz1; iz++)
                         value += data[iz][ir] + (data1 ? data1[iz][ir] : 0.0);
                       value /= (iz1 - iz0 + 1);
+                      */
                       break;
                     case DIRECTION_R:
                       iz = (sample_defn->position - EM_problem->zmin) / EM_problem->dz + 0.5;
@@ -878,10 +881,12 @@ void sample_fields(
                           sample_defn->fileInitialized = 1;
                           sample_defn->sample_index = 0;
                         }
+                        /*
                       value = 0;
                       for (ir = ir0; ir <= ir1; ir++)
                         value += data[iz][ir] + (data1 ? data1[iz][ir] : 0.0);
                       value /= (ir1 - ir0 + 1);
+                      */
                       break;
                     }
                   break;
@@ -914,10 +919,12 @@ void sample_fields(
                           sample_defn->fileInitialized = 1;
                           sample_defn->sample_index = 0;
                         }
+                        /*
                       value = 0;
                       for (iz = iz0; iz <= iz1; iz++)
                         value += data[iz][ir] + (data1 ? data1[iz][ir] : 0.0);
                       value /= (iz1 - iz0 + 1);
+                      */
                       break;
                     case DIRECTION_R:
                       iz = (sample_defn->position - EM_problem->zmin) / EM_problem->dz;
@@ -946,10 +953,12 @@ void sample_fields(
                           sample_defn->fileInitialized = 1;
                           sample_defn->sample_index = 0;
                         }
+                        /*
                       value = 0;
                       for (ir = ir0; ir <= ir1; ir++)
                         value += data[iz][ir] + (data1 ? data1[iz][ir] : 0.0);
                       value /= (ir1 - ir0 + 1);
+                      */
                       break;
                     }
                   break;
@@ -983,10 +992,12 @@ void sample_fields(
                           sample_defn->fileInitialized = 1;
                           sample_defn->sample_index = 0;
                         }
+                        /*
                       value = 0;
                       for (iz = iz0; iz <= iz1; iz++)
                         value += data[iz][ir] + (data1 ? data1[iz][ir] : 0.0);
                       value /= (iz1 - iz0 + 1);
+                      */
                       break;
                     case DIRECTION_R:
                       iz = (sample_defn->position - EM_problem->zmin) / EM_problem->dz;
@@ -1015,10 +1026,12 @@ void sample_fields(
                           sample_defn->fileInitialized = 1;
                           sample_defn->sample_index = 0;
                         }
+                        /*
                       value = 0;
                       for (ir = ir0; ir <= ir1; ir++)
                         value += data[iz][ir] + (data1 ? data1[iz][ir] : 0.0);
                       value /= (ir1 - ir0 + 1);
+                      */
                       break;
                     }
                 }

@@ -26,7 +26,7 @@ ifeq ($(OS), Linux)
 endif
 
 ifeq ($(OS), Darwin)
-  #CFLAGS += -Wno-unused-variable
+  CFLAGS += -Wno-unused-variable
   LDFLAGS := -L$(SDDS_REPO)/lib/$(OS)-$(ARCH) $(LDFLAGS)
   PROD_SYS_LIBS := $(LZMA_LIB) $(GSL_LIB) $(GSLCBLAS_LIB) $(Z_LIB) $(PROD_SYS_LIBS)
   PROD_LIBS = -lmdbcommon -lmatlib -lSDDS1 -lnamelist -lrpnlib -lmdbmth -lmdblib
