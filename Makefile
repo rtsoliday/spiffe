@@ -41,9 +41,7 @@ $(SDDS_REPO)/matlib: $(SDDS_REPO)/fftpack
 	$(MAKE) -C $@
 $(SDDS_REPO)/mdbcommon: $(SDDS_REPO)/matlib
 	$(MAKE) -C $@
-$(SDDS_REPO)/utils: $(SDDS_REPO)/mdbcommon
-	$(MAKE) -C $@
-src: $(SDDS_REPO)/utils
+src: $(SDDS_REPO)/mdbcommon
 	$(MAKE) -C $@
 
 clean:
