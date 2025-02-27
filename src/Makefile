@@ -33,9 +33,8 @@ ifeq ($(OS), Darwin)
 endif
 
 ifeq ($(OS), Windows)
-  CFLAGS += -I../tiff -I../lzma -I../zlib -openmp -wd4018 -wd4244 -wd4267 -wd4305 -wd4311 -wd4312
-  CCFLAGS += -I../tiff -I../lzma -I../zlib -openmp -wd4018 -wd4244 -wd4267 -wd4305 -wd4311 -wd4312
-  PROD_LIBS = mdbcommon.lib matlib.lib SDDS1.lib rpnlib.lib mdbmth.lib mdblib.lib lzma.lib z.lib
+  CFLAGS += -I$(SDDS_REPO)/lzma -wd4244
+  PROD_LIBS = mdbcommon.lib matlib.lib SDDS1.lib namelist.lib rpnlib.lib mdbmth.lib mdblib.lib lzma.lib z.lib
   LIB_LINK_DIRS = -LIBPATH:$(SDDS_REPO)/lib/$(OS)-$(ARCH)
 endif
 
