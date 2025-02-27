@@ -1,0 +1,57 @@
+%
+\newpage
+
+\subsection{translate}
+
+\begin{itemize}
+
+\item {\bf description:}
+Sets up repeated translation of the memory used for the mesh in the +z
+direction to follow the beam.  This can be used to simulate a long
+drift while using less computing time and less memory.  There has been
+little testing of this feature!
+
+\item {\bf example:} 
+\begin{verbatim}
+&translate
+        z_trigger = 0.05,
+        z_lower = 0.02,
+        z_upper = 0.055
+&end
+\end{verbatim}
+This specifies that when the first particle passes $z=5$cm, the
+mesh will be contracted to cover the region from $z=2$cm to 
+$z=5.5$cm.  Thereafter, each time a particle advances by one
+longitudinal mesh spacing, the grid will be translated that same
+distance in the +z direction.
+
+The boundary conditions are changed to Neumann on the upper, right, and
+left boundaries and Dirichlet on the lower boundary.  
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&translate
+        z_lower = <zMin>,
+        z_upper = <zMax>,
+        z_trigger = <z0>,
+&end
+\end{verbatim}
+where \verb|<zMin>| and \verb|<zMax>| are the minimum and maximum longitudinal
+coordinates for the original problem mesh, and \verb|<z0>| is \verb|<zMax>|-$5*\Delta z$,
+where $\Delta z$ is the mesh spacing.
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt z\_trigger}:  The first time any particle passes the longitudinal
+        position given for this variable, mesh reduction is triggered and
+        translation is enabled.  Prior to this time, the {\tt translate} command
+        has no effect.  After this time, translation by $\Delta z$ occurs 
+        every time the maximum longitudinal particle position increases by
+        $\Delta z$.
+    \item {\tt z\_lower}: The lower limit of the longitudinal extent of the
+        reduced mesh.
+    \item {\tt z\_upper}: The upper limit of the longitudinal extent of the
+        reduced mesh.
+\end{itemize}
+
+\end{itemize}

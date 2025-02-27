@@ -1,0 +1,116 @@
+
+\newpage
+
+\subsection{define\_geometry}
+\label{define_geometry}
+
+\begin{itemize}
+
+\item {\bf description:}
+Define the simulation region and the geometry of a cavity.  This
+includes defining the grid sizes, the boundary conditions, which types
+of fields to include (TE or TM), and how to interpolate on the grid.
+This is done with the {\tt define\_geometry} command, which requires
+existence of a boundary definition file in a POISSON-like format.
+This file specifies not only the location of the metal surfaces
+in the problem, but optionally the potential of each.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_geometry
+    nz = 165, zmin = 0.0, zmax = 0.0959148653920, 
+    nr = 165, rmax=0.04289777777,
+    boundary = "mg6mm-3.geo", 
+    boundary_output = "mg6mm-3.bnd",
+    interior_points = "mg6mm-3.pts"
+&end
+\end{verbatim}
+This command defines a problem with an extent of about 9.6cm
+in the longitudinal direction and about 4.3cm in the radial
+direction.  The number of grid lines in each dimension is
+165.  Boundary input is taken from file {\tt mg6mm-3.geo}.
+In addition, output of the boundary coordinates is to be
+placed in file {\tt mg6mm-3.bnd} while output of the coordinates
+of all interior grid points is to be placed in {\tt mg6mm-3.pts}.
+ 
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_geometry
+    long nz = 0;
+    long nr = 0;
+    double zmin = 0;
+    double zmax = 0;
+    double rmax = 0;
+    double zr_factor = 1;
+    STRING rootname = NULL;
+    STRING boundary = NULL;
+    STRING boundary_output = NULL;
+    STRING urmel_boundary_output = NULL; 
+    STRING discrete_boundary_output = NULL;
+    STRING interior_points = NULL;
+    STRING lower = "Dirichlet";
+    STRING upper = "Neumann";
+    STRING right = "Neumann";
+    STRING left  = "Neumann";
+    long include_TE_fields = 0;
+    long exclude_TM_fields = 0;
+    long turn_off_Er = 0;
+    long turn_off_Ez = 0;
+    long turn_off_Ephi = 0;
+    long turn_off_Br = 0;
+    long turn_off_Bz = 0;
+    long turn_off_Bphi = 0;
+    long print_grids = 0;
+    long radial_interpolation = 1;
+    long longitudinal_interpolation = 1;
+    long radial_smearing = 0;
+    long longitudinal_smearing = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:}
+\begin{itemize}
+\item {\tt nz, nr}: number of grid lines in z and r dimensions, respectively.
+\item {\tt zmin, zmax}: starting and ending longitudinal coordinate, respectively.
+\item {\tt rmax}: maximum radial coordinate.
+\item {\tt zr\_factor}: a factor by which to multiply the z and r values in the boundary
+ input file to convert the values to meters.  For example, {\tt zr\_factor=0.01} would be used if the 
+ boundary input file values were in centimeters.
+\item {\tt rootname}: rootname for construction of output filenames.  Defaults to the rootname of
+ the input file.
+\item {\tt boundary}: name of input file containing POISSON-like specification of the cavity boundary
+        and surface potentials.
+\item {\tt boundary\_output}: (incomplete) name of output file to which SDDS-protocol data will be sent containing
+        the coordinates of points on the {\em ideal} boundary, i.e., the boundary you would get if
+        your grid spacing was zero.  Recommended value: ``%s.bouti''.
+\item {\tt discrete\_boundary\_output}: (incomplete) name of output
+        file to which SDDS-protocol data will be sent containing the
+        coordinates of points on the actual boundary used in the
+        simulation.  This differs from the ideal boundary because
+        every point on the actual boundary must be a grid point.
+        Recommended value: ``%s.boutd''.
+\item {\tt interior\_points}: (incomplete) name of output file to which SDDS-protocol data will be sent containing 
+        the coordinates of all interior points of the cavity.  May be used together with boundary
+        output files and {\tt sddsplot} to manually confirm the interpretation of the cavity
+        specification by {\tt spiffe}.
+\item {\tt lower, upper, right, left}: boundary conditions for the edges of the simulation region.
+        The defaults are listed above.  ``Dirichlet'' boundary conditions means that electric field
+        lines are parallel to the boundary.  ``Neumann'' boundary conditions means that electric field
+        lines are perpendicular to the boundary.
+\item {\tt include\_TE\_fields}: flag indicating whether to include transverse-electric fields, i.e.,
+        fields having no longitudinal electric field components.  If you include space-charge and the
+        beam is rotating, you should set this to 1.
+\item {\tt exclude\_TM\_fields}: flag indicating whether to exclude transverse-magnetic fields, i.e.,
+        fields having no longitudinal magnetic field components.  
+\item {\tt turn\_off\_...}: flags indicating that the specified fields should be ``turned off,'' which
+  means that the don't affect particles.  Used for testing purposes.
+\item {\tt print\_grids}: flag requesting a text-based picture of the simulation grids.
+\item {\tt radial\_interpolation, longitudinal\_interpolation}: flags requesting that field components be 
+        interpolated in the radial and longitudinal direction when fields are applied to particles.  If 0,
+        then fields will change abruptly as particles move from one grid square to the next.  
+\item {\tt radial\_smearing, longitudinal\_smearing}: flags requesting that charge and current from
+        simulation macro particles be smeared over the grid points surrounding each particle.
+        If 0, charge and current are assigned to the nearest grid point.
+\end{itemize}
+
+\end{itemize}

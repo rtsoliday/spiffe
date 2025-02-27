@@ -1,0 +1,79 @@
+%
+\newpage
+
+\subsection{define\_secondary\_emission}
+
+\begin{itemize}
+
+\item {\bf description:} Permits specification of secondary emission
+yield function for the material surface.  This refers to emission of
+one or more new particles when a particle impacts the surface.  By
+default, no secondary emission is done.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_secondary_emission
+    input_file = ``secondary.sdds'',
+    kinetic_energy_column = ``K'',
+    yield_column = ``Yield''
+&end
+\end{verbatim}
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&namelist secondary_emission
+        STRING input_file = NULL;
+        STRING kinetic_energy_column = NULL;
+        STRING yield_column = NULL;
+        long yield_limit = 0;
+        double emitted_momentum = 0;
+        long verbosity = 1;
+        long material_id = 1;
+        STRING log_file = NULL;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+        \item {\tt input\_file} --- Name of an SDDS file from which the secondary emission
+        yield curve will be read.
+        \item {\tt kinetic\_energy\_column} --- Name of the column in {\tt input\_file} giving
+        values of the particle kinetic energy, in eV.  
+        \item {\tt yield\_column}  --- Name of the column in {\tt input\_file} giving
+        values of the mean yield.  This is a ratio, giving the mean number of new electrons per
+        incident electron.
+        \item {\tt yield\_limit} --- If non-zero, this parameter limits from above the number
+        of secondaries that can be emitted per primary particle. It can be helpful in preventing
+        runaway, wherein the number of low-energy secondaries grows exponentially.
+        \item {\tt emitted\_momentum} --- $\beta\gamma$ value for newly-emitted particles.
+        The orientation of the momentum is random.
+        \item {\tt verbosity} --- Larger positive values result in more detailed printouts
+        during the run.
+        \item {\tt material\_id} --- A positive integer giving the material for which this
+          command specifies secondary emission properties. This will be used together with
+          the \verb|material_id| parameter of the \verb|point| namelists in the geometry
+          file to determine the appropriate secondary emission properties for each segment
+          of the cavity boundary.
+        \item {\tt log\_file} --- A possibly incomplete name of an SDDS file to which 
+         secondary emission records will be written.
+\end{itemize}
+
+\end{itemize}
+
+The algorithm is a simple one suggested by J. Lewellen (APS).  We
+assume that the secondary emission yield is a function only of the
+incident particle's kinetic energy.  Each time a particle is lost, the
+code determines where the particle intersected the metal boundary.
+The mean secondary yield is computed from the kinetic energy at the
+time of loss.  The number of secondary particles emitted is chosen
+using a Poisson distribution with that mean.  The secondary particles
+are placed ``slightly'' ($\Delta r/10^6$ or $\Delta z/10^6$) outside
+the metal surface.
+
+To prevent runaway, the secondary yield curve should fall to zero for
+low energies.  If you have problems with runaway, try setting the {\tt
+yield\_limit} parameter to a small positive integer.  Runaway
+appears to be associated (at times) with the occasional production of
+large numbers of secondaries due to the tails of the Poisson
+distribution.
+

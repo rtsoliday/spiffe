@@ -1,0 +1,63 @@
+%
+\newpage
+
+\subsection{load\_fields}
+
+\begin{itemize}
+
+\item {\bf description:}
+
+Allows loading fields from a previous {\tt spiffe} run.  The fields
+are stored in a file created with the {\tt save\_fields} command.
+
+\item {\bf example:} 
+\begin{verbatim}
+&load_fields
+    filename = "fields.saved",
+    factor = 1.5;
+&end
+\end{verbatim}
+This loads fields from the file {\tt fields.saved}, applying a factor
+of 1.5 to the values.  These fields become the only time-varying
+fields in the problem.  (Others may be superimposed in subsequent
+operations.)
+
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+#namelist load_fields
+    STRING filename = NULL;
+    double Ez_peak = 0;
+    double factor = 1;
+    double time_threshold = 0;
+    long overlay = 0;
+#end
+\end{verbatim}
+
+\item {\bf details:}
+\begin{itemize}
+\item {\tt filename}: Name of the file from which to take field
+        data.  Normally created with the {\tt save\_fields} command.
+        The file is in SDDS-protocol, typically with multiple data pages.
+        Normally, the first page is used.  This may be modified with
+        the {\tt time\_threshold} parameter.
+\item {\tt Ez\_peak}: Desired maximum value of on-axis longitudinal electric
+        field.  The fields from the data file are scaled to obtain this value.
+        Note that this option cannot be used if TM fields are disabled.
+        By default, no scaling occurs.
+\item {\tt factor}: Factor by which to multiply the fields before use.
+        If {\tt Ez\_peak} is 0, then this value is ignored.  One of
+        {\tt factor} or {\tt Ez\_peak} must be nonzero.
+\item {\tt time\_threshold}: Minimum simulation time, in seconds, at which
+        the fields may have been created in order to be used.  For example,
+        if {\tt time\_threshold} is {\tt 1e-9}, then {\tt spiffe} will advance
+        through the pages of fields until it finds one from 1ps or more
+        (in simulation time) after the start of the simulation that created
+        the file {\tt filename}.
+\item {\tt overlay}: Normally, the time-varying fields in the simulation are
+        set equal to those in the file, within a scale factor.  If you wish to
+        simply add the new fields to those already in force, then set {\tt overlay}
+        to a nonzero value.
+\end{itemize}
+
+\end{itemize}

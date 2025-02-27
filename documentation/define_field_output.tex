@@ -1,0 +1,57 @@
+%
+\newpage
+
+\subsection{define\_field\_output}
+
+\begin{itemize}
+
+\item {\bf description:}
+Requests output of the field map into an SDDS file.  A separate SDDS
+data page is made for successive maps.  The interleaved simulation
+field grids are interpolated to give all field values on the same
+grid.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_field_output
+    filename = "gunRun.fields",
+    time_interval = 0.1e-9,
+    start_time = 1e-9,
+    z_interval = 2,
+    r_interval = 2
+&end
+\end{verbatim}
+This command results in output of the fields on a grid that is twice
+as coarse as the simulation grid in both z and r, starting at time
+1ns and continuing at 100ps intervals thereafter.  The data is put
+in an SDDS file named {\tt gunRun.fields}.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_field_output
+    STRING filename = NULL;
+    double time_interval = 0;
+    double start_time = 0;
+    long z_interval = 1;
+    long r_interval = 1;
+    long exclude_imposed_field = 0;
+    long separate_imposed_field = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt filename}: Name of an SDDS file in which to put the data.
+    \item {\tt time\_interval}: Simulated time interval in seconds between successive maps.
+    \item {\tt start\_time}: Starting simulated time for data output.
+    \item {\tt z\_interval}: Interval at which grid points are spaced longitudinally in
+        units of the simulation longitudinal grid size.
+    \item {\tt r\_interval}: Interval at which grid points are spaced radially in
+        units of the simulation radial grid size.
+    \item {\tt exclude\_imposed\_field}: Flag requesting that any fields specified with the
+        {\tt constant\_fields} command should be excluded from the field output.
+    \item {\tt separate\_imposed\_field}: Flag requesting that any fields specified with the
+        {\tt constant\_fields} command should be included in the output as separate data elements.
+\end{itemize}
+
+\end{itemize}

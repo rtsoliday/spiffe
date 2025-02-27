@@ -1,0 +1,52 @@
+%
+\newpage
+
+\subsection{define\_resistor}
+
+\begin{itemize}
+
+\item {\bf description:}
+Defines a resistive element in the cavity interior.  These simulate
+the effect of walls that are less than perfectly conducting.  It slows
+the simulation tremendously, due to the reduced step size needed to
+obtain numerical stability.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_resistor
+    start = 0.02, end = 0.03,
+    position = 0.04, 
+    direction = "z",
+    conductivity = 6e3
+&end
+\end{verbatim}
+This specifies a resistor extending in the longitudinal (z) direction
+from 2cm to 3cm, at a radius of 4cm.  The conductivity is $6*10^3 {\rm
+(m*ohms)}^{-1}$, the value for copper.
+
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_resistor
+    double start = 0;
+    double end = 0;
+    double position = 0;
+    STRING direction = "z";
+    double conductivity = 1e154;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt direction}:  The direction in which the resistor extends.
+        May be ``z'' or ``r''.
+    \item {\tt start, end}: The starting and ending coordinates of the
+        resistor in the {\tt direction} dimension.
+    \item {\tt position}: The position of the resistor in the ``other''
+        dimension.  E.g., the radial position if {\tt direction} is ``z''.
+    \item {\tt conductivity}: The conductivity of the metal in ${\rm
+(m*ohms)}^{-1}$.
+
+\end{itemize}
+
+\end{itemize}

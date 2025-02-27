@@ -1,0 +1,76 @@
+%
+\newpage
+
+\subsection{integrate}
+
+\begin{itemize}
+
+\item {\bf description:}
+Defines integration parameters and begins integration.  Allows
+specifying the integration time step, the total time to integrate, and
+other conditions of integration.
+
+\item {\bf example:} 
+\begin{verbatim}
+&integrate
+    dt_integration = 1e-12,
+    start_time = 0,
+    finish_time = 5e-9,
+    status_interval = 128,
+    space_charge = 1
+&end
+\end{verbatim}
+Starts integration of equations for particles and fields
+at a simulated time of 0, taking steps of 1ps, until reaching
+5ns.  Every 128 steps, status information is printed to the
+screen.  Space charge is included.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&integrate
+    double dt_integration = 0;
+    double start_time = 0;
+    double finish_time = 0;
+    long status_interval = -1;
+    long space_charge = 0;
+    long check_divergence = 0;
+    double smoothing_parameter = 0;
+    double J_filter_multiplier = 0;  
+    long terminate_on_total_loss = 0;
+    STRING status_output = NULL;
+    STRING lost_particles = NULL;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt dt\_integration}: Simulation step size in seconds.
+    \item {\tt start\_time}: Simulation start time.  Typically 0 for new runs.
+        Ignored for runs that involve fields loaded from other simulations.
+    \item {\tt finish\_time}: Simulation stop time.
+    \item {\tt status\_interval}: Interval in units of a simulation step between 
+        status printouts.
+    \item {\tt space\_charge}: Flag requesting inclusion of space-charge in the
+        simulation.
+    \item {\tt check\_divergence}: Flag requesting that status printouts include
+        a check of the field values using the divergence equation.
+    \item {\tt smoothing\_parameter}: Specifies a simple spatial filter for the
+        current density.  The smoothing parameter, $s$, is used to compute two
+        new quantities, $c_1 = 1-s$ and $c_2 = s/2$.  The program smooths longitudinal
+        variation for constant radius, using $A_o \rightarrow (A_- + A_+)c_2 + A_o c_1$,
+        where $A_o$ is the central value and $A_\pm$ are the adjacent values to a grid point.
+        This function is rarely used and I do not recommend it.
+    \item {\tt J\_filter\_multiplier}: Specifies a simple time-domain filter for the
+        current density.  For each point on the grid, the new current density value $J(1)$ is
+        replaced by $J(1)*(1-f) + J(0)*f$.  This is an infinite impulse response filter.
+        This function is rarely used and I do not recommend it.
+    \item {\tt terminate\_on\_total\_loss}: Flag requesting that when all simulation particles
+        are lost (e.g., by hitting a wall or exiting the simulation), the simulation should
+        terminate.
+    \item {\tt status\_output}: Provide the name of a file to which to write status information,
+        including statistics on the beams and fields.  File is in SDDS format.
+    \item {\tt lost\_particles}: Provide the name of a file to which to write information about
+        particles that get lost.  File is in SDDS format.
+\end{itemize}
+
+\end{itemize}

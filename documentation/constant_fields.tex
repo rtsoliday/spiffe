@@ -1,0 +1,47 @@
+%
+\newpage
+
+\subsection{set\_constant\_fields}
+
+\begin{itemize}
+
+\item {\bf description:}
+Defines constant field components to be imposed on the simulation.
+These field components are not necessarily physical in that they may
+not satisfy Maxwell's equations.
+
+\item {\bf example:} 
+\begin{verbatim}
+&set_constant_fields
+    Ez = 1e3,
+    Bz = 1,
+&end
+\end{verbatim}
+This command specifies a constant longitudinal electric field
+of 1 kV/m and a constant longitudinal magnetic field of 1 T.
+Note that these are physically possible, at least in the absence
+of metallic or magnetic materials.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&constant_fields
+    double Ez = 0;
+    double Er = 0;
+    double Ephi = 0;
+    double Bz = 0;
+    double Br = 0;
+    double Bphi = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+\item {\tt Ez}: Specifies longitudinal electric field in V/m.
+\item {\tt Er}: Specifies radial electric field in V/m.
+\item {\tt Ephi}: Specifies azimuthal electric field in V/m.
+\item {\tt Bz}: Specifies longitudinal magnetic field in T.
+\item {\tt Br}: Specifies radial magnetic field in T.
+\item {\tt Bphi}: Specifies azimuthal magnetic field in T.
+\end{itemize}
+
+\end{itemize}

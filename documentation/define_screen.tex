@@ -1,0 +1,62 @@
+%
+\newpage
+
+\subsection{define\_screen}
+
+\begin{itemize}
+
+\item {\bf description:}
+Defines a series of diagnostic ``screens'' for placement in the beam
+path.  A single {\tt define\_screen} command can be used to produce
+output of beam parameters at a series of equispaced longitudinal
+positions.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_screen
+    template = "gunRun-%03ld.sdds",
+    z_position = 0.01,
+    delta_z = 0.01,
+    number_of_screens = 5,
+    start_time = 1e-9,
+    direction = "forward"
+&end
+\end{verbatim}
+Defines a series of 5 screens for detection of forward-moving
+particles, The screens are positioned at z coordinates of 1, 2, 3, 4,
+and 5cm, with data going to files named {\tt gunRun-000.sdds}, {\tt
+gunRun-001.sdds}, etc.  Detection begins only after 1ns of simulated
+time.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_screen
+    STRING filename = NULL;
+    STRING template = NULL;
+    double z_position = 0;
+    double delta_z = 0;
+    long number_of_screens = 1;
+    double start_time = 0;
+    STRING direction = "forward";
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt filename}: Name of an SDDS file to which to write the data.  Used only
+        if {\tt number\_of\_screens = 1}.
+    \item {\tt template}: Template for creating the names of SDDS files to which to write
+        data.  The template must contain a C-style format specifier for a long integer.
+        The template is used as an argument to the C function {\tt sprintf} to create each
+        filename in turn.
+    \item {\tt z\_position}: The position (or starting position) of the screen (or series of
+        screens), in meters.
+    \item {\tt delta\_z}: In {\tt number\_of\_screens} is greater than 1, gives the distance in
+        meters between successive screens.
+    \item {\tt number\_of\_screens}: The number of screens in the series.
+    \item {\tt start\_time}: The starting time in seconds for accumulation of data.
+    \item {\tt direction}: The direction in which particles must be traveling in order to
+        be recorded by the screen.  May be "forward" or "backward".
+\end{itemize}
+
+\end{itemize}

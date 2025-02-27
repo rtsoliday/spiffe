@@ -1,0 +1,110 @@
+%
+\newpage
+
+\subsection{define\_solenoid}
+
+\begin{itemize}
+
+\item {\bf description:}
+Define solenoid coils, from which static magnetic fields will be
+computed and imposed on the particle motion.  The {\tt
+define\_solenoid} command permits defining a solenoid with a specified
+length, radius, symmetry, and current/field.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_solenoid
+   radius = 0.05, 
+   z_start = 0.01, z_end = 0.02,
+   current = 1,
+   Bz_peak = 1,
+   turns = 100
+&end
+\end{verbatim}
+This command defines a 100-turn solenoid extending longitudinally
+between coordinates 1cm and 2cm, at a radius of 5cm.  The current,
+initial 1A, is adjusted to obtain a peak on-axis longitudinal B field
+of 1Tesla.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+#namelist define_solenoid
+        double radius = 0;
+        double evaluation_radius_limit = 0;
+        double z_start = 0;
+        double z_end = 0;
+        double current = 0;
+        double Bz_peak = 0;
+        long turns = 1;
+        long symmetry = 0;
+        STRING field_output = NULL;
+        long bucking = 0;
+        double z_buck = 0;
+#end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+\item {\tt radius}: The radius of the coils in meters.
+\item {\tt evaluation\_radius\_limit}: The maximum radius in meters at which the solenoidal
+        fields should be computed.  This can save considerable CPU time if you
+        are not interested in particles that go beyond a certain radius (e.g.,
+        you know they'll be lost).
+\item {\tt z\_start, z\_end}: The starting and ending longitudinal coordinate of the
+        coils, in meters.
+\item {\tt current}: The current in each coil in Amperes ({\bf not} Ampere-turns).
+\item {\tt Bz\_peak}: The peak on-axis longitudinal magnetic field in Tesla desired
+        from this solenoid.  The current is scaled to achieve this value.  Even if
+        you give this value, you must give an initial value for {\tt current}.
+\item {\tt turns}: The number of turns (or coils) in the solenoid.
+\item {\tt symmetry}: Either 0, 1, or -1 for no symmetry, even symmetry, or odd
+        symmetry.  For codes of $\pm 1$, the resulting fields are those produced
+        by the combination of the specified solenoid and another identical solenoid
+        extending from {\tt -z\_start} to {\tt -z\_end}.  If {\tt symmetry} is 1 (-1),
+        the field from the mirror solenoid adds to (subtracts from) the field due
+        to the specified solenoid.  
+\item {\tt field\_output}: Requests output of the solenoid field to an SDDS file.
+        This output is accumulated field from all solenoids defined up to this
+        point, including the solenoid presently being defined.
+\item {\tt bucking}: If nonzero, indicates that this is a bucking solenoid.  The solenoid current
+        is adjusted to zero the on-axis value of $B_z$ at {\tt z\_buck}.
+\item {\tt z\_buck}: If {\tt bucking} is nonzero, the location at which the field is bucked.
+\end{itemize}
+
+\end{itemize}
+
+Here is an example of using three {\tt define\_solenoid} commands to make a solenoid field with
+a peak on-axis $B_z$ value of 0.3T that is bucked to zero at $z=0$.  The main solenoid field is produced by
+two sets of windings with a ratio of 10:1 between the current:
+\begin{verbatim}
+
+&define_solenoid
+        radius = 0.06,
+        evaluation_radius_limit = 0.1,
+        z_start = 0.0,
+        z_end = 0.15,
+        current = 1,
+        turns = 100,
+&end
+
+&define_solenoid
+        radius = 0.06,
+        evaluation_radius_limit = 0.1,
+        z_start = 0.20,
+        z_end = 0.30,
+        current = 0.1,
+        turns = 67,
+&end
+
+&define_solenoid
+        radius = 0.02,
+        evaluation_radius_limit = 0.1,
+        z_start = -0.04,
+        z_end = -0.02,
+        current = 1,  ! any nonzero value will do
+        turns = 100,
+        bucking = 1,
+        Bz_peak = 0.3,
+        field_output = solenoid.sdds
+&end
+\end{verbatim}

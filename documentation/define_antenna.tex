@@ -1,0 +1,63 @@
+%
+\newpage
+
+\subsection{define\_antenna}
+
+\begin{itemize}
+
+\item {\bf description:}
+Allows generating time-varying fields using a modulated sine-wave current
+source.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_antenna
+    start = 0.01, end = 0.02, position = 0.03,
+    direction = "z",
+    current = 1,
+    frequency = 2856e6,
+    waveform = "spline.wf"
+&end
+\end{verbatim}
+This defines a current source in the longitudinal direction extending from
+z of 1cm to 2cm at a radius of 3cm.  The amplitude of the current is
+1A with a frequency of 2856MHz, modulated by the envelope in SDDS file
+{\tt spline.wf}.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_antenna
+    double start = 0;
+    double end = 0;
+    double position = 0;
+    STRING direction = "z";
+    double current = 0;
+    double frequency = 0;
+    double phase = 0;
+    STRING waveform = NULL;
+    double time_offset = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+
+\begin{itemize}
+\item {\tt direction}: may take values "z" and "r", indicating an antenna extending
+        in the longitudinal or radial direction, respectively.
+\item {\tt start, end}:  starting and ending limits of the antenna in the 
+        {\tt direction} direction.
+\item {\tt position}: position of the antenna in the "other" direction.  I.e., it is
+        the r position if {\tt direction} is "z", and the z position if {\tt direction}
+        is "r".
+\item {\tt current, frequency, phase}: basic parameters of the antenna waveform.
+\item {\tt waveform, time\_offset}: specifies an envelope function for the antenna drive.
+The SDDS file {\tt waveform} must contain at least two columns, named {\tt t} (for the
+time in seconds) and {\tt W}, specifying the envelope {\tt W(t)}.  The antenna is
+driven by the function
+$ I*W(t-t_o)*\sin(2*\pi*f+\phi) $, where $I$ is the {\tt current} in Amperes, 
+$t$ is the time in seconds, $t_o$ is {\tt time\_offset} in seconds, $f$ is
+{\tt frequency} in Hertz, and $\phi$ is {\tt phase} in radians.
+
+\end{itemize}
+
+\end{itemize}

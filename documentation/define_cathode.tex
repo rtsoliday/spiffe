@@ -1,0 +1,138 @@
+%
+\newpage
+
+\subsection{define\_cathode}
+
+\begin{itemize}
+
+\item {\bf description:}
+Permits specification of the size, current density, time profile, and
+other parameters of particle emission from an annulus.  Starting in 
+version 2.3, multiple cathodes may be defined.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_cathode
+    z_position = 0, outer_radius = 0.003,
+    current_density = 20e4, 
+    start_time = 0, stop_time = 200e-12,
+    number_per_step = 8, 
+&end
+\end{verbatim}
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_cathode
+    double z_position = 0;
+    double inner_radius = 0;
+    double outer_radius = 0;
+    double current_density = 0;
+    double temperature = 0;
+    double work_function = 0;
+    long field_emission = 0;
+    long add_thermal_velocities = 0;
+    double field_emission_beta = 1;
+    long determine_temperature = 0;
+    double electrons_per_macroparticle = 0;
+    double start_time = 0;
+    double stop_time = 0;
+    long autophase = 0;
+    double time_offset = 0;
+    double number_per_step = 0;
+    double initial_pz = 0;
+    double initial_omega = 0;
+    double stiffness = 1;
+    long discretize_radii = 0;
+    long random_number_seed = 987654321;
+    long distribution_correction_interval = 0;
+    long spread_over_dt = 0;
+    long zoned_emission = 1;
+    long halton_radix_dt = 0;
+    long halton_radix_r = 0;
+    STRING profile = NULL;
+    STRING profile_time_name = NULL;
+    STRING profile_factor_name = NULL;
+    STRING emission_log = NULL;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt z\_position}:  Longitudinal position of the cathode in meters.
+    \item {\tt inner\_radius, outer\_radius}: Inner and outer radius of the edges
+        of the cathode, in meters.
+    \item {\tt current\_density}: Base current density, in Amperes/${\rm m^2}$.
+    \item {\tt temperature}: Temperature of the cathode in degrees Kelvin.  If
+        zero, then emission is constant at the rate given by {\tt current\_density}.
+        Otherwise, used together with the work function (given by the
+        {\tt work\_function} parameter) and the Richardson-Schottky emission model
+        to determine emission at each time step based on the electric field.
+    \item {\tt work\_function}: Work function of the cathode material in eV.  Must
+        be nonzero if the temperature is nonzero.
+    \item {\tt determine\_temperature}: If nonzero, then attempts to determine the      
+        temperature required to give the current density given by {\tt current\_density}.
+        You must give the {\tt work\_function}.  Results are approximate because
+        of the Richardson-Schottky law.
+      \item {\tt add\_thermal\_velocities} : If nonzero, thermal velocities are
+        added at the time of emission, assuming a Maxwellian velocity distribution.
+    \item {\tt field\_emission}: If nonzero, then the cathode emits only by field
+        emission.  The treatment of field emission is from section 6.13 of {\em
+        The Handbook of Accelerator Physics and Engineering.}.  In field emission
+        mode, {\tt spiffe} splits the cathode into many subcathodes, each one
+        radial grid space in extent.  The field emission current density is
+        computed for each subcathode separately, so that the results are correct
+        in the case where the field varies over the cathode.
+    \item {\tt field\_emission\_beta}: Gives the field enhancement factor for
+        computing field emission current density.  The value of the electric
+        field is multiplied by this factor before being used to compute the
+        field emission current density.  Typical values are between 1 and 100.
+        In this mode, you must specify {\tt electrons\_per\_macroparticle}.
+    \item {\tt electrons\_per\_macroparticle}: Number of electrons represented by
+        each macroparticle.  
+    \item {\tt number\_per\_step}: How many macroparticles to emit per
+        step.  Incompatible with specifying {\tt electrons\_per\_macroparticle}.
+    \item {\tt start\_time, stop\_time}: Start and stop time for emission, in seconds.
+    \item {\tt autophase}: Flag requesting that cathode emission start only when the
+        field at the cathode has the proper phase to accelerate the beam.  The total
+        time for emission is still determined by the difference between the start
+        and stop time.
+    \item {\tt time\_offset}: Only relevant when {\tt autophase = 1}.  Specifies a time
+        offset relative to the emission start time determined by autophasing.
+    \item {\tt initial\_pz}:  The initial longitudinal momentum of emitted
+        particles, in dimensionless units (i.e., normalized to $m_e c$).
+    \item {\tt initial\_omega}: The initial angular velocity of particles, in
+        radians per second.
+    \item {\tt stiffness}: The beam stiffness, i.e., the particle mass,
+        in electron masses.
+    \item {\tt discretize\_radii}: Flag requesting that particles be emitted only from
+        radii $n*\Delta r$, where n is an integer and $\Delta r$ is the radial grid spacing.
+        This can be useful for certain types of diagnostic runs, but should not be used with    
+        space charge.
+    \item {\tt random\_number\_seed}:  The seed for the particle emission random number
+        generator.  A large, odd integer is recommended.  If 0 is given, the seed is picked based
+        on the computer clock.
+    \item {\tt distribution\_correction\_interval}: The number of steps between corrections to
+        the emitted particle distribution.  Can be used to compensate for nonuniform emission
+        that occurs due to use of random numbers in the emission algorithm.  If used, it should
+        be set to 1.  Cannot be used when the temperature is nonzero (Richardson-Schottky
+        emission law).
+    \item {\tt spread\_over\_dt}: Flag requesting that emitted particles have their effective 
+        emission times spread out over the simulation time step, $\Delta t$.  The particle velocities
+        are adjusted appropriately using the instantaneous $E_z$ and $E_r$ fields {\em only}.
+    \item {\tt zoned\_emission}: Flag requesting that emission calculations take place separately
+        for each annular zone of width $\Delta r$ (the radial grid spacing).  Reduces the possibility
+        that random number effects will result in a nonuniform current density.
+    \item {\tt halton\_radix\_t}: Halton radix (a small prime number) to be used for quiet-start
+      generation of time values.
+    \item {\tt halton\_radix\_r}: Halton radix (a small prime number) to be used for quiet-start
+      generation of radius values.
+    \item {\tt profile}: The name of an SDDS-protocol file containing a time-profile with which
+        to modulate the base current density. 
+    \item {\tt profile\_factor\_name, profile\_time\_name}: The columns giving the current-density
+        adjustment factor and the corresponding time when it is valid for the file named by
+        {\tt profile}.  The adjustment factor should be on $[0, 1]$.
+    \item {\tt emission\_log}: The name of an SDDS-protocol file to which data will be written for
+      each emitted particle.
+\end{itemize}
+
+\end{itemize}

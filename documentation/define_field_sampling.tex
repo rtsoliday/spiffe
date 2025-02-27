@@ -1,0 +1,77 @@
+%
+\newpage
+
+\subsection{define\_field\_sampling}
+
+\begin{itemize}
+
+\item {\bf description:}
+Requests sampling of the fields vs time or space coordinates.  One may
+set up sampling of a specific field component along a line in z or r,
+with output vs the distance along the line at specified times or else
+output of the average value along the line vs time.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_field_sampling
+    filename = "gunRun.Ez_t,
+    component = "Ez",
+    time_sequence = 1
+    direction = "z",
+    min_coord = 0, max_coord = 0.01,
+    position = 0,
+    time_interval = 10e-12,
+    start_time = 0,
+&end
+\end{verbatim}
+Requests logging of $E_z$ as a function of time, with samples made a
+10ps simulated time intervals starting with the start of the
+simulation.  The data output is the average of $E_z$ along a
+line from $z=0$ to $z=1$cm.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_field_sampling
+    STRING filename = NULL;
+    STRING component = NULL;
+    STRING direction = NULL;
+    double min_coord = 0;
+    double max_coord = 0;
+    double position = 0;
+    double time_interval = 0;
+    double start_time = 0;
+    long time_sequence = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt filename}: Name of an SDDS file to which to write the data.
+    \item {\tt component}: Field component to sample.  Must be one of
+        "Ez", "Er", "Jz", "Jr", "Bphi", "Phi", "Ephi", "Bz", "Br", "Q",
+        "Eall", or "Ball",
+        E is the electric field, B is the magnetic field,
+        J is the current density, Phi is the scalar potential, and Q
+        charge assigned to a grid point.
+        "Eall" and "Ball" request, respectively, all E- and B-field components.
+        As of version 4.8.0, the E- and B-field outputs are obtained using
+        the same interpolation routines as used for particle pushing, rather
+        than merely taking the nearest grid points.
+    \item {\tt direction}: The direction of the line along which samples are
+        taken.  Must be "z" or "r".
+    \item {\tt min\_coord, max\_coord}: The minimum and maximum coordinates
+        of the sample line.
+    \item {\tt position}: The position of the sample line in the direction
+        orthogonal to {\tt direction}.
+    \item {\tt time\_sequence}:  Flag requesting that instead of writing
+        the selected component as a function of the coordinate {\tt direction},
+        {\tt spiffe} instead write the average value of the component along
+        the sample line as a function of time.  It zero, then {\tt spiffe}
+        creates a new SDDS page for each sample time.
+    \item {\tt start\_time}: The simulated time in seconds at which to start
+        sampling.
+    \item {\tt time\_interval}: The simulated time interval in seconds at which
+        to make samples.
+\end{itemize}
+
+\end{itemize}

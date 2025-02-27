@@ -1,0 +1,61 @@
+%
+\newpage
+
+\subsection{poission\_correction}
+
+\begin{itemize}
+
+\item {\bf description:}
+This command requests correction of the electric fields so that they
+satisfy Poisson's equation.  It is recommended in order to increase
+the accuracy of the field solutions.  Without it, numerical errors
+tend to build up that correspond to fictitious concentrations of
+static charge on the grid.
+
+\item {\bf example:} 
+\begin{verbatim}
+&poisson_correction
+    start_time = 1e-9, 
+    step_interval = 32,
+    accuracy = 1e-4,
+    error_charge_threshold = 1e-15
+&end
+\end{verbatim}
+This requests that Poisson correction be performed every 32 simulation
+steps starting 1ns after the start of the simulation.  The fractional
+accuracy of the Poisson solver is $10^{-4}$.  It is invoked only when
+the amount of fictitious charge exceeds 0.001 pC.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&poisson_correction
+    double start_time = 0;
+    long step_interval = 0;
+    double accuracy = 1e-6;
+    double error_charge_threshold = 0;
+    long maximum_iterations = 1000;
+    long verbosity = 0;
+    double test_charge = 0;
+    double z_test_charge = 0;
+    double r_test_charge = 0;
+    STRING guess_type = "none";
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+\item {\tt start\_time}: Time in seconds at which to begin Poisson correction.
+\item {\tt step\_interval}: Interval between corrections in units of the simulation step.
+\item {\tt accuracy}: Fractional accuracy of the Poisson solutions.
+\item {\tt error\_charge\_threshold}: Amount of net error charge that must be present for
+        Poisson correction to actually take place.
+\item {\tt maximum\_iterations}: Maximum number of iterations of the relaxation loop for
+        the Poisson solver.
+\item {\tt verbosity}: Flag requesting informational output about Poisson correction.
+\item {\tt test\_charge, z\_test\_charge, r\_test\_charge}:  For developmental use only.
+\item {\tt guess\_type}: The model to use for the initial guess to start the Poisson
+        iteration.  Possibilities are, ``none'', ``line-charge'', ``point-charge'', and
+        ``zero.''  It is recommended that ``none'' be used.
+\end{itemize}
+
+\end{itemize}

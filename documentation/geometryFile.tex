@@ -1,0 +1,89 @@
+%
+\newpage
+
+\subsection{Geometry File}
+\label{geometryFile}
+
+\begin{itemize}
+
+\item {\bf description:}
+This page describes the structure of the geometry file used with the
+{\tt define\_geometry} namelist.  The file is similar to those used
+with the program POISSON.
+
+\item {\bf example:} 
+\begin{verbatim}
+! new RF gun, first cell
+ &po x=0.000, y=0.000 &end
+ &po x=0.000, y=0.006 &end
+ &po x=0.0016, y=0.0135 &end
+ &po x=0.0016, y=0.0427755  &end
+ &po x=0.0060, y=0.0427755   &end
+ &po nt=2, x0=0.006, y0=0.0181355, 
+           r=0.02464, theta=0.0  &end
+ &po x=0.03064  , y=0.014818    &end
+ &po nt=2, x0=0.02861, y0=0.014818, 
+           r=0.00203, theta=-90.0  &end
+ &po x=0.02836, y=0.012788   &end
+ &po nt=2, x0=0.02836, y0=0.010588, 
+           r=0.0022, theta=180.0  &end
+ &po x=0.02616, y=0.01008     &end
+ &po nt=2, x0=0.03116, y0=0.01008, 
+           r=0.005, theta=270.0  &end
+ &po x=0.0348, y=0.00508  &end
+ &po x=0.0348, y=0.00  &end
+ &po x=0.000000, y=0.00  &end
+\end{verbatim}
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&point
+    int nt = 1;
+    double x = 0;
+    double y = 0;
+    double x0 = 0;
+    double y0 = 0;
+    double r = 0;
+    double a = 0;
+    double b = 0;
+    double aovrb = 0;
+    double theta = 0;
+    int change_direction = 0;
+    double potential = 0;
+    int ramp_potential = 0;
+    int material_id = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:}
+\begin{itemize}
+\item {\tt nt}: The segment type, where 1 (the default) indicates a line segment;
+        2 indicates an arc of a circle; 3 indicates the start of a separate
+        structure; and 4 indicates a definition of an in-vacuum point.
+\item {\tt x, y}: For {\tt nt=1}, the endpoint of the line.  x corresponds to z 
+        (the longitudinal coordinate) and y corresponds to r (the radial coordinate).
+        For {\tt nt=2}, the endpoint of the circular or elliptical arc relative to (\verb|x0|, \verb|y0|).
+        For {\tt nt=3}, the first point on the new shape.  For {\tt nt=4},
+        the coordinates of the in-vacuum point.
+\item {\tt x0, y0}: For {\tt nt=2}, the center of the circular or elliptical arc.
+\item {\tt r}: For {\tt nt=2}, the radius of the circular arc. The equation of the arc is
+$(x-x_0)^2 + (y-y_0)^2 = r^2$.
+\item {\tt a}, {\tt b}, {\tt aovrb}: For {\tt nt=2}, the parameters of the elliptical arc.
+The equation of the arc is 
+$(x-x_0)^2/a^2 + (y-y_0)^2/b^2 = 1$.
+If \verb|a| or \verb|b| is zero, then the value is determined using the ratio \verb|aovrb| (a over b).
+\item {\tt theta}: For {\tt nt=2}, the angle in degrees of the end of the arc as seen from the
+        center of the arc.  If this angle is less (greater) than the angle of the starting
+        point (which is on $[-180, 180]$), then the sense of the arc is clockwise (counter-clockwise).
+\item {\tt change\_direction}: For \verb|nt=2| when \verb|theta| is not given but \verb|x| and \verb|y| are,
+  \verb|spiffe| may have trouble determining the direction of the arc. This flag can be used to change the
+  direction.
+\item {\tt potential}: The potential of the segment, in volts.
+\item {\tt ramp\_potential}: If non-zero, the potential along a line is ramped linearly between the
+  given value and the end value for the previous segment.  Only implemented for {\tt nt=1}.
+\item \verb|material_id|: a positive integer that identifies the material of which this segment is
+  made. Used to associate segments of the geometry with primary emission (\verb|define_emitter|) and
+  secondardy emission (\verb|define_secondary_emission|).
+\end{itemize}
+
+\end{itemize}

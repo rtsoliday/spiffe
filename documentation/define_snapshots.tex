@@ -1,0 +1,40 @@
+%
+\newpage
+
+\subsection{define\_snapshots}
+
+\begin{itemize}
+
+\item {\bf description:}
+Requests beam snapshots at equispaced time intervals.
+These snapshots contain the spatial and momentum coordinates
+of all particles.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_snapshots
+    filename = "gunRun.snap",
+    time_interval = 0.1e-9
+    start_time = 2e-9
+&end
+\end{verbatim}
+This command results in snapshots being taken every 100ps starting
+at time 2ns, with data going to {\tt gunRun.snap}.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_snapshots
+    STRING filename = NULL;
+    double time_interval = 0;
+    double start_time = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt filename}:  The name of an SDDS file to which to write the snapshots.
+    \item {\tt time\_interval}:  The interval in seconds between successive snapshots.
+    \item {\tt start\_time}: The time in seconds at which to make the first snapshot.
+\end{itemize}
+
+\end{itemize}

@@ -1,0 +1,108 @@
+%
+\newpage
+
+\subsection{define\_emitter}
+
+\begin{itemize}
+
+\item {\bf description:}
+Permits specification of properties of an emitting region on the surface.
+Similar to \verb|define_cathode|, but without some features.
+Unlike \verb|define_cathode|, the emitter can be any surface, not just a plane of
+constant z.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_emitter,
+    material_id = 10
+    current_density = 20e4, 
+    start_time = 0, stop_time = 200e-12,
+    electrons_per_macroparticle = 1e6
+&end
+\end{verbatim}
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_emitter
+    long material_id = -1;
+    double current_density;
+    double temperature;
+    long determine_temperature;
+    double work_function ; /* in eV */
+    long add_thermal_velocities = 0;
+    long field_emission = 0;
+    double field_emission_beta = 1;
+    double electrons_per_macroparticle;
+    double start_time;
+    double stop_time;
+    double initial_p;
+    long random_number_seed;
+    int32_t halton_radix_dt = 0;
+    int32_t halton_radix_r = 0;
+    int32_t halton_radix_z = 0;
+    STRING profile = NULL;
+    STRING profile_time_name = NULL;
+    STRING profile_factor_name = NULL;
+    STRING emission_log = NULL;
+#end
+
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+        \item {\tt material\_id} --- A positive integer giving the material for which this
+          command specifies emission properties. This will be used together with
+          the \verb|material_id| parameter of the \verb|point| namelists in the geometry
+          file to determine the appropriate emission properties for each segment
+          of the cavity boundary.
+    \item {\tt current\_density}: Base current density, in Amperes/${\rm m^2}$.
+    \item {\tt temperature}: Temperature of the cathode in degrees Kelvin.  If
+        zero, then emission is constant at the rate given by {\tt current\_density}.
+        Otherwise, used together with the work function (given by the
+        {\tt work\_function} parameter) and the Richardson-Schottky emission model
+        to determine emission at each time step based on the electric field.
+    \item {\tt work\_function}: Work function of the cathode material in eV.  Must
+        be nonzero if the temperature is nonzero.
+    \item {\tt determine\_temperature}: If nonzero, then attempts to determine the      
+        temperature required to give the current density given by {\tt current\_density}.
+        You must give the {\tt work\_function}.  Results are approximate because
+        of the Richardson-Schottky law.
+      \item {\tt add\_thermal\_velocities} : If nonzero, thermal velocities are
+        added at the time of emission, assuming a Maxwellian velocity distribution.
+    \item {\tt field\_emission}: If nonzero, then the cathode emits only by field
+        emission.  The treatment of field emission is from section 6.13 of {\em
+        The Handbook of Accelerator Physics and Engineering.}.  In field emission
+        mode, {\tt spiffe} splits the cathode into many subcathodes, each one
+        radial grid space in extent.  The field emission current density is
+        computed for each subcathode separately, so that the results are correct
+        in the case where the field varies over the cathode.
+    \item {\tt field\_emission\_beta}: Gives the field enhancement factor for
+        computing field emission current density.  The value of the electric
+        field is multiplied by this factor before being used to compute the
+        field emission current density.  Typical values are between 1 and 100.
+        In this mode, you must specify {\tt electrons\_per\_macroparticle}.
+    \item {\tt electrons\_per\_macroparticle}: Number of electrons represented by
+        each macroparticle.  
+    \item {\tt start\_time, stop\_time}: Start and stop time for emission, in seconds.
+    \item {\tt initial\_p}:  The initial momentum of emitted
+        particles, in dimensionless units (i.e., normalized to $m_e c$).
+    \item {\tt random\_number\_seed}:  The seed for the particle emission random number
+        generator.  A large, odd integer is recommended.  If 0 is given, the seed is picked based
+        on the computer clock.
+    \item {\tt spread\_over\_dt}: Flag requesting that emitted particles have their effective 
+        emission times spread out over the simulation time step, $\Delta t$.  The particle velocities
+        are adjusted appropriately using the instantaneous $E_z$ and $E_r$ fields {\em only}.
+    \item {\tt halton\_radix\_t}: Halton radix (a small prime number) to be used for quiet-start
+      generation of time values.
+    \item {\tt halton\_radix\_r}: Halton radix (a small prime number) to be used for quiet-start
+      generation of radius values.
+    \item {\tt profile}: The name of an SDDS-protocol file containing a time-profile with which
+        to modulate the base current density. 
+    \item {\tt profile\_factor\_name, profile\_time\_name}: The columns giving the current-density
+        adjustment factor and the corresponding time when it is valid for the file named by
+        {\tt profile}.  The adjustment factor should be on $[0, 1]$.
+    \item {\tt emission\_log}: The name of an SDDS-protocol file to which data will be written for
+      each emitted particle.
+\end{itemize}
+
+\end{itemize}

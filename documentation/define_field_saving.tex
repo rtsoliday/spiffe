@@ -1,0 +1,45 @@
+%
+\newpage
+
+\subsection{define\_field\_saving}
+
+\begin{itemize}
+
+\item {\bf description:}
+Field saving refers to writing the simulation fields to disk in 
+such a way that they can be reloaded in subsequent runs.  At this
+time, it saves only the time-dependent field components, not the
+external fields defined with {\tt define\_solenoid} or {\tt constant\_fields}.
+
+\item {\bf example:} 
+\begin{verbatim}
+&define_field_saving
+    filename = "gunRun.fsave",
+    time_interval = 1e-9,
+    double start_time = 5e-9
+&end
+\end{verbatim}
+This command results in saving of the fields at 1ns intervals starting
+at simulated time of 5ns to file "gunRun.fsave".  Successive saves are
+placed in successive SDDS pages.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+&define_field_saving
+    STRING filename = NULL;
+    double time_interval = 0;
+    double start_time = 0;
+    long save_before_exiting = 0;
+&end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+    \item {\tt filename}:  Name of an SDDS file to which to write the field saves.
+    \item {\tt time\_interval}: Simulated time interval in seconds between successive saves.
+    \item {\tt start\_time}: Simulated time at which to make the first save.
+    \item {\tt save\_before\_exiting}: Flag requesting that a save be made just prior to
+        program termination.
+\end{itemize}
+
+\end{itemize}

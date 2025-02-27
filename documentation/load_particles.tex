@@ -1,0 +1,64 @@
+%
+\newpage
+
+\subsection{load\_particles}
+
+\begin{itemize}
+
+\item {\bf description:}
+
+Allows loading particles from an SDDS file.  This is an alternative to using
+a cathode and can provide essentially arbitrary particle distributions.
+Since \verb|spiffe| is a 2.5 dimensional code, the ``particles'' are really
+rings at a given radius and longitudinal position.
+
+Note that particles can be injected into the simulation region if they start with
+$z$ or $r$ coordinates outside of $z:[z_{\textrm{min}}, z_{\textrm{max}}]$ 
+or $r:[0, r_{\textrm{max}}]$. In this case, the particles drift ballistically until
+they enter the problem region. As a special case, particles entering from the 
+left-hand side of the problem region are not active until they emerge from
+any metal surface that abuts $z=z_{\textrm{min}}$.
+
+\item {\bf example:} 
+\begin{verbatim}
+&load_particles
+    filename = "particles.sdds",
+&end
+\end{verbatim}
+This loads particles from the file \verb|particles.sdds|.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+#namelist load_particles
+        STRING filename = NULL;
+        long sample_interval = 1;
+        double stiffness = 1;
+#end
+\end{verbatim}
+
+\item {\bf details:}
+\begin{itemize}
+\item {\tt filename}: Name of the SDDS file from which to take particle data.
+  The file must have the following columns with the following units:
+  \begin{itemize}
+    \item[z]: longitudinal position in meters. 
+    \item[r]: radial poition in meters.  If the particle position is initially
+       outside the problem region or inside a metal volume, it will move 
+       ballistically until it enters the problem region or emerges from the metal.
+    \item[pz]: longitudinal momentum, $\beta_z \gamma$.
+    \item[pr]: radial momentum, $\beta_r \gamma$.
+    \item[pphi]: azimuthal momentum, $\beta_\phi \gamma$.
+    \item[q]: charge, in Coulombs.
+    \end{itemize}
+
+\item {\tt sample\_interval}: Causes \verb|spiffe| to take only every
+  {\tt sample\_interval}$^{th}$ particle from the file.
+
+\item {\tt stiffness}: Allows making the beam artificially stiff.  Equivalent
+  to increasing the particle mass by the given factor.
+
+\end{itemize}
+
+\end{itemize}
+
+

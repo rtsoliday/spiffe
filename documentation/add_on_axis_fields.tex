@@ -1,0 +1,73 @@
+%
+\newpage
+
+\subsection{add\_on\_axis\_fields}
+
+\begin{itemize}
+
+\item {\bf description:}
+
+Adds on-axis field data to the simulation.  The user must provide an
+SDDS file giving $E_z(z,r=0)$.  This data is used to compute
+$E_z(z,r,t)$, $E_r(z,r,t)$, and $B_\phi(z,r,t)$ using an off-axis
+expansion in $r$ and assuming $E \sim \sin
+(\omega t + \phi)$ and $B \sim \cos (\omega t + \phi)$.
+
+Any number of \verb|add_on_axis_fields| commands may be given.
+
+\item {\bf example:} 
+\begin{verbatim}
+&add_on_axis_fields
+  filename = fieldProfile.sdds,
+  z_name = z,
+  Ez_name = Ez,
+  Ez_peak = 30e6,
+  phase = 180,
+  expansion_order = 2
+  fields_used = fieldUsed.sdds,
+&end
+\end{verbatim}
+
+This command loads on-axis field data from columns \verb|z| and
+\verb|Ez| in \verb|fieldProfile.sdds|, and scales it so that the peak
+field is 30 MV/m.  The phase, $\phi$, is set to 180 degrees.  Because
+\verb|spiffe| simulates electrons, if $E(z,r)$ is positive, the phase
+factor must be negative to provide acceleration.  I.e.,
+$\phi=270^\circ$ is the accelerating phase.
+
+\item {\bf synopsis and defaults:} 
+\begin{verbatim}
+#namelist add_on_axis_fields
+        STRING filename = NULL;
+        STRING z_name = NULL;
+        STRING Ez_name = NULL;
+        double Ez_peak = 0;
+        double frequency = 0;
+        double z_offset = 0;
+        long expansion_order = 3;
+        STRING fields_used = NULL;
+#end
+\end{verbatim}
+
+\item {\bf details:} 
+\begin{itemize}
+\item {\tt filename}: Name of the SDDS file containing the data.
+\item {\tt z\_name}: Name of the column containing $z$ values, which must be monotonically increasing and
+  equispaced.
+\item {\tt Ez\_name}: Name of the column containing $E_z$ values.
+\item {\tt Ez\_peak}: Absolute value, in V/m, of the maximum on-axis electric field due to this field profile.
+  The $E_z$ values are scaled to obtain this maximum, but the signs are unchanged.
+\item {\tt frequency}: Frequency of the fields, in Hz.
+\item {\tt z\_offset}: Offset, in meters, to be added to the $z$ values.
+\item {\tt expansion\_order}: Order of the off-axis expansion:
+  \begin{itemize}
+   \item[0] $E_z$ is constant in $r$, while $E_r$ and $B_\phi$ are zero.
+   \item[1] $E_z$ is constant in $r$, while $E_r$ and $B_\phi$ vary linearly with $r$.
+   \item[2] Adds a quadratic variation with $r$ to $E_z$ .
+   \item[3] Adds a cubic variation with $r$ to $E_r$ and $B_\phi$.
+  \end{itemize}
+\item {\tt fields\_used}: Name of an SDDS file to which field profile data will be written for all
+  on-axis fields specified up to and including this command.
+\end{itemize}
+
+\end{itemize}
