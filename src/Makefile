@@ -1,6 +1,6 @@
 SDDS_REPO = $(wildcard ../../SDDS)
 ifeq ($(SDDS_REPO),)
-  $(error SDDS source code not found. Run 'git clone https://github.com/rtsoliday/SDDS.git' next to the SDDS-Python-module repository)
+  $(error SDDS source code not found. Run 'git clone https://github.com/rtsoliday/SDDS.git' next to the spiffe repository)
 endif
 
 include ../Makefile.rules
