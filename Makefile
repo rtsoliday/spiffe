@@ -38,7 +38,6 @@ DIRS += src
 all: $(DIRS)
 
 ifneq ($(GSL_REPO),)
-  GSL_CLEAN = $(MAKE) -C $(GSL_REPO) -f Makefile.MSVC clean
   $(GSL_REPO):
 	$(MAKE) -C $@ -f Makefile.MSVC all
 endif
@@ -66,7 +65,6 @@ src: $(SDDS_REPO)/mdbcommon
 	$(MAKE) -C $@
 
 clean:
-	$(GSL_CLEAN)
 	$(MAKE) -C src clean
 
 distclean: clean

@@ -34,7 +34,8 @@ endif
 
 ifeq ($(OS), Windows)
   CFLAGS += -I$(SDDS_REPO)/lzma -wd4244
-  PROD_LIBS_SDDS = mdbcommon.lib matlib.lib SDDS1.lib namelist.lib rpnlib.lib gsl.lib gslcblas.lib mdbmth.lib mdblib.lib lzma.lib z.lib
+  PROD_LIBS += gsl.lib gslcblas.lib
+  PROD_LIBS_SDDS = mdbcommon.lib matlib.lib SDDS1.lib namelist.lib rpnlib.lib mdbmth.lib mdblib.lib lzma.lib z.lib
   LIB_LINK_DIRS += -LIBPATH:$(SDDS_REPO)/lib/$(OS)-$(ARCH)
 endif
 
