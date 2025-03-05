@@ -13,10 +13,11 @@ ifeq ($(OS), Windows)
 endif
 
 # Check for external SDDS repository
-SDDS_REPO = $(wildcard ../SDDS)
+SDDS_REPO = $(wildcard ../SDDS ../../../../epics/extensions/src/SDDS)
 ifeq ($(SDDS_REPO),)
   $(error SDDS source code not found. Run 'git clone https://github.com/rtsoliday/SDDS.git' next to the spiffe repository)
 endif
+
 
 include Makefile.rules
 
