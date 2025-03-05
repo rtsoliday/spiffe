@@ -14,7 +14,11 @@ spiffe_SRC = advance_particles.c antenna.c cathode.c constant_fields.c \
 		test_beam.c translate.c space_charge.c spiffe.c status_pr.c \
 		Bsolenoid.c solenoid.c onAxisFields.c secondaryEmission.c emitter.c
 
-SVN_VERSION=GIT_$(shell git log --oneline | wc -l | sed 's/^[[:space:]]*//')
+ifneq ($(wildcard $(DD)../.svn $(DD)../../../../.svn),)
+  SVN_VERSION=$(shell svnversion .)
+else
+  SVN_VERSION=GIT_$(shell git log --oneline | wc -l | sed 's/^[[:space:]]*//')
+endif
 
 CFLAGS += -I$(SDDS_REPO)/include -I$(OBJ_DIR) -DSVN_VERSION=\"$(SVN_VERSION)\"
 
