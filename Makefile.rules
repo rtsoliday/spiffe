@@ -22,10 +22,11 @@ ifneq ($(wildcard $(DD)../.svn $(DD)../../../../.svn),)
  EPICS_LIB_DIR = $(DD)../../../lib/$(EPICS_HOST)-$(EPICS_ARCH)
  EPICS_BIN_DIR = $(DD)../../../bin/$(EPICS_HOST)-$(EPICS_ARCH)
  EPICS_INC_DIR = $(DD)../../../include
+ EPICS_EXTENSIONS_LIB_DIR = ../../../../../epics/extensions/lib/$(EPICS_HOST)-$(EPICS_ARCH)
 endif
 
 # Common library search paths
-LIB_DIRS := $(EPICS_LIB_DIR) /usr/lib64 /usr/lib/x86_64-linux-gnu /lib64 /usr/lib /lib /usr/X11/lib /opt/local/lib /sw/lib /usr/sfw/lib $(DD)../../lib
+LIB_DIRS := $(EPICS_LIB_DIR) $(EPICS_EXTENSIONS_LIB_DIR) /usr/lib64 /usr/lib/x86_64-linux-gnu /lib64 /usr/lib /lib /usr/X11/lib /opt/local/lib /sw/lib /usr/sfw/lib $(DD)../../lib
 
 FFTW3_LIB = $(firstword $(wildcard \
            $(addsuffix /libfftw3.dylib, $(LIB_DIRS)) \
@@ -47,20 +48,20 @@ LZMA_LIB = $(firstword $(wildcard \
            $(addsuffix /lzma.lib, $(LIB_DIR))))
 HDF5_LIB = $(firstword $(wildcard \
            $(addsuffix /libhdf5.dylib, $(LIB_DIRS)) \
-           $(addsuffix /libhdf5.so, $(LIB_DIRS)) \
-           $(addsuffix /libhdf5.a, $(LIB_DIRS))))
+           $(addsuffix /libhdf5.a, $(LIB_DIRS)) \
+           $(addsuffix /libhdf5.so, $(LIB_DIRS))))
 SZ_LIB = $(firstword $(wildcard \
            $(addsuffix /libsz.dylib, $(LIB_DIRS)) \
            $(addsuffix /libsz.so, $(LIB_DIRS)) \
            $(addsuffix /libsz.a, $(LIB_DIRS))))
 GSL_LIB = $(firstword $(wildcard \
            $(addsuffix /libgsl.dylib, $(LIB_DIRS)) \
-           $(addsuffix /libgsl.so, $(LIB_DIRS)) \
-           $(addsuffix /libgsl.a, $(LIB_DIRS))))
+           $(addsuffix /libgsl.a, $(LIB_DIRS)) \
+           $(addsuffix /libgsl.so, $(LIB_DIRS))))
 GSLCBLAS_LIB = $(firstword $(wildcard \
               $(addsuffix /libgslcblas.dylib, $(LIB_DIRS)) \
-              $(addsuffix /libgslcblas.so, $(LIB_DIRS)) \
-              $(addsuffix /libgslcblas.a, $(LIB_DIRS))))
+              $(addsuffix /libgslcblas.a, $(LIB_DIRS)) \
+              $(addsuffix /libgslcblas.so, $(LIB_DIRS))))
 PNG_LIB = $(firstword $(wildcard \
            $(addsuffix /libpng.dylib, $(LIB_DIRS)) \
            $(addsuffix /libpng.so, $(LIB_DIRS)) \
