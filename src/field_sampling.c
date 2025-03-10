@@ -279,8 +279,7 @@ void sample_fields(
                               SDDS_DefineParameter(&sample_defn->outTable, "runName", NULL, NULL, NULL, NULL,
                                                    SDDS_STRING, EM_problem->run_name) < 0 ||
                               SDDS_DefineParameter(&sample_defn->outTable, "tSample", NULL, "s", NULL, NULL,
-                                                   SDDS_DOUBLE, NULL) < 0 ||
-                              !SDDS_WriteLayout(&sample_defn->outTable))
+                                                   SDDS_DOUBLE, NULL) < 0)
                             SDDS_PrintErrors(stderr, SDDS_EXIT_PrintErrors | SDDS_VERBOSE_PrintErrors);
                           if (sample_defn->component_code == SAMPLE_E)
                             {
@@ -323,7 +322,7 @@ void sample_fields(
                                             EM_problem);
                           if (sample_defn->component_code == SAMPLE_E)
                             {
-                              if (!SDDS_SetRowValues(&sample_defn->outTable, SDDS_SET_BY_INDEX | SDDS_PASS_BY_VALUE, iz - iz0,
+                              if (!SDDS_SetRowValues(&sample_defn->outTable, SDDS_SET_BY_INDEX | SDDS_PASS_BY_VALUE, ir - ir0,
                                                      0, ir * EM_problem->dr,
                                                      1, fieldValue[0],
                                                      2, fieldValue[1],
@@ -333,7 +332,7 @@ void sample_fields(
                             }
                           else if (sample_defn->component_code == SAMPLE_B)
                             {
-                              if (!SDDS_SetRowValues(&sample_defn->outTable, SDDS_SET_BY_INDEX | SDDS_PASS_BY_VALUE, iz - iz0,
+                              if (!SDDS_SetRowValues(&sample_defn->outTable, SDDS_SET_BY_INDEX | SDDS_PASS_BY_VALUE, ir - ir0,
                                                      0, ir * EM_problem->dr,
                                                      1, fieldValue[3],
                                                      2, fieldValue[4],
@@ -343,7 +342,7 @@ void sample_fields(
                             }
                           else
                             {
-                              if (!SDDS_SetRowValues(&sample_defn->outTable, SDDS_SET_BY_INDEX | SDDS_PASS_BY_VALUE, iz - iz0,
+                              if (!SDDS_SetRowValues(&sample_defn->outTable, SDDS_SET_BY_INDEX | SDDS_PASS_BY_VALUE, ir - ir0,
                                                      0, ir * EM_problem->dr,
                                                      1, fieldValue[sample_defn->component_code],
                                                      -1))
