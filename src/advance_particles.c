@@ -87,36 +87,8 @@ void advance_particles(
   long maxLost, nExtra = 0, newLost = 0;
   double max_r, ave_z, ave_vz;
   short directionCode;
-
 #if defined(DEBUG)
   long izNew, irNew;
-  static FILE *fpd = NULL;
-  static long counter = 0;
-
-  if (!fpd)
-    {
-      fpd = fopen_e("fields.deb", "w", 0);
-      fprintf(fpd, "SDDS1\n&column name=t, units=s, type=float &end\n");
-      fprintf(fpd, "&column name=r, units=m, type=float &end\n");
-      fprintf(fpd, "&column name=z, units=m, type=float &end\n");
-      fprintf(fpd, "&column name=Ez, units=V/m, type=float &end\n");
-      fprintf(fpd, "&column name=Er, units=V/m, type=float &end\n");
-      fprintf(fpd, "&column name=Bphi, units=T, type=float &end\n");
-      fprintf(fpd, "&column name=Bz, units=T, type=float &end\n");
-      fprintf(fpd, "&column name=Br, units=T, type=float &end\n");
-      fprintf(fpd, "&column name=Ephi, units=V/m, type=float &end\n");
-      fprintf(fpd, "&column name=dpr/dt, units=1/s, type=float &end\n");
-      fprintf(fpd, "&column name=dpz/dt, units=1/s, type=float &end\n");
-      fprintf(fpd, "&column name=dr_pphi/dt, units=m/s, type=float &end\n");
-      fprintf(fpd, "&data mode=ascii, no_row_counts=1 &end\n");
-    }
-  if ((counter % 10) == 0)
-    {
-      nExtra = 100;
-      if (counter)
-        fprintf(fpd, "\n");
-    }
-  counter++;
 #endif
 
   if (N_SCREEN_QUANS != 8)
@@ -149,12 +121,29 @@ void advance_particles(
     nExtra = 0;
   EM_problem->EzOOEMin = HUGE;
   EM_problem->EzOOEMax = -HUGE;
+
+#if DEBUG
+  fprintf(stdout, "%ld particles, %ld active particles, %ld extra particles\n",
+          beam->np, beam->npActive, nExtra);
+  fflush(stdout);
+#endif
   for (ip = 0; ip < beam->np + nExtra; ip++)
     {
+#if DEBUG
+      fprintf(stdout, "Particle %ld of %ld: %s, z=%e, r=%e, pz=%e, pr=%e, r_pphi=%e, vz=%e, vr=%e, vphi=%e\n",
+              ip, beam->np+nExtra, beam->status[ip]&PART_ACTIVE?"active":"inactive",
+              beam->z[ip], beam->r[ip], beam->pz[ip], beam->pr[ip], beam->r_pphi[ip],
+              beam->vz[ip], beam->vr[ip], beam->vphi[ip]);
+      fflush(stdout);
+#endif
+
       /*dtAdjust = 0;*/
       adjustFactor = 1;
+      z = z0 = r = r0 = z0Save = r0Save = 0;
+
       if (ip < beam->np)
         {
+
           /* (z, r) values are at t-dt (synchronized with Ez, Er). */
           z = z0 = z0Save = beam->z[ip];
           r = r0 = r0Save = beam->r[ip];
@@ -180,32 +169,23 @@ void advance_particles(
             {
               iz = (z - zmin) / dz;
               ir = fabs(r) / dr;
-              if (!(z >= EM_problem->zmin && z <= EM_problem->zmax && r <= EM_problem->rmax) ||
-                  checkLossCode(iz, ir, EM_problem))
-                {
-                  beam->z[ip] = z;
-                  beam->r[ip] = r;
-                  continue;
-                }
-#if DEBUG
-              fprintf(stdout, "Particle %ld active: z=%e, r=%e, pz=%e, pr=%e, r_pphi=%e, vz=%e, vr=%e, vphi=%e\n",
-                      ip, beam->z[ip], beam->r[ip], beam->pz[ip], beam->pr[ip], beam->r_pphi[ip],
-                      beam->vz[ip], beam->vr[ip], beam->vphi[ip]);
-#endif
-              beam->status[ip] |= PART_ACTIVE;
-              beam->npActive++;
-              beam->t0[ip] = EM_problem->time;
-              beam->r0[ip] = beam->r[ip];
-              beam->z0[ip] = beam->z[ip];
-              /* Assume the particle entered on the left. This factor is used to adjust the integral 
-               * of the force applied on this step 
-               */
-              if (iz > 0 && checkLossCode(iz - 1, ir, EM_problem))
-                adjustFactor = (z - (iz * EM_problem->dz + EM_problem->zmin)) / (z - z0);
-              else
-                adjustFactor = (z - EM_problem->zmin) / (z - z0);
-              if (adjustFactor > 1)
-                adjustFactor = 1;
+              if (!(!(z >= EM_problem->zmin && z <= EM_problem->zmax && r <= EM_problem->rmax) ||
+                    checkLossCode(iz, ir, EM_problem))) {
+                beam->status[ip] |= PART_ACTIVE;
+                beam->npActive++;
+                beam->t0[ip] = EM_problem->time;
+                beam->r0[ip] = beam->r[ip];
+                beam->z0[ip] = beam->z[ip];
+                /* Assume the particle entered on the left. This factor is used to adjust the integral 
+                 * of the force applied on this step 
+                 */
+                if (iz > 0 && checkLossCode(iz - 1, ir, EM_problem))
+                  adjustFactor = (z - (iz * EM_problem->dz + EM_problem->zmin)) / (z - z0);
+                else
+                  adjustFactor = (z - EM_problem->zmin) / (z - z0);
+                if (adjustFactor > 1)
+                  adjustFactor = 1;
+              }
             }
           if (zForcesStart > EM_problem->zmin && zForcesStart < EM_problem->zmax)
             {
@@ -247,7 +227,7 @@ void advance_particles(
 
       is_lost = 0;
       lossCode = 0;
-      if (z < zmin || z > zmax || r > rmax)
+      if ((beam->status[ip] & PART_ACTIVE) && (z < zmin || z > zmax || r > rmax))
         {
           lossCode = 1;
           is_lost = 1;
@@ -260,13 +240,13 @@ void advance_particles(
       izNew = iz;
       irNew = ir;
 #endif
-      if (iz > EM_problem->nz || ir > EM_problem->nr || iz < 0 || ir < 0)
+      if ((beam->status[ip] & PART_ACTIVE) && (iz > EM_problem->nz || ir > EM_problem->nr || iz < 0 || ir < 0))
         {
           lossCode = 2;
           is_lost = 1;
         }
 
-      if (!is_lost)
+      if (!is_lost && (beam->status[ip] & PART_ACTIVE))
         {
           if ((lossCode = checkLossCode(iz, ir, EM_problem)))
             is_lost = 1;
@@ -284,7 +264,7 @@ void advance_particles(
           r_was_negative = 1;
         }
 
-      if (!is_lost)
+      if (!is_lost && (beam->status[ip] & PART_ACTIVE))
         {
           /* update statistics on particle motion */
           if (z > beam->zmax[ip])
@@ -304,8 +284,12 @@ void advance_particles(
       if (!(test_beam_defn->electrons_per_macroparticle &&
             (test_beam_defn->z_force || test_beam_defn->r_force)))
         {
-          /* calculate fields at new position */
-          interpolateFields(&Ez, &Er, &Ephi, &Bz, &Br, &Bphi, z, r, EM_problem);
+          if (beam->status[ip] & PART_ACTIVE) {
+            interpolateFields(&Ez, &Er, &Ephi, &Bz, &Br, &Bphi, z, r, EM_problem);
+          } else {
+            /* calculate fields at new position */
+            Ez = Er = Ephi = Bz = Br = Bphi = 0;
+          }
 
           if (test_beam_defn->electrons_per_macroparticle)
             beam->stiffness = 1;
@@ -316,14 +300,6 @@ void advance_particles(
           pz += adjustFactor * dt * beam->QoMC * (Ez + vr * Bphi - vphi * Br) / beam->stiffness;
           r_pphi += adjustFactor * dt * beam->QoMC * r * (Ephi + vz * Br - vr * Bz) / beam->stiffness;
 
-#if defined(DEBUG)
-          if (ip >= beam->np)
-            {
-              fprintf(fpd, "%le %le %le %le %le %le %le %le %le %le %le %le\n", EM_problem->time, r, z, Ez, Er, Bphi, Bz, Br, Ephi,
-                      (pr - pr0) / dt, (pz - pz0) / dt, (r_pphi - r_pphi0) / dt);
-              continue;
-            }
-#endif
         }
       else
         {
@@ -357,9 +333,15 @@ void advance_particles(
 #if DEBUG
       fprintf(stdout, "Particle %ld coords: z=%e, r=%e, pz=%e, pr=%e, r_pphi=%e\n",
               ip, z, r, pz, pr, r_pphi);
+      fflush(stdout);
 #endif
       setParticleVelocities(&beam->vz[ip], &beam->vr[ip], &beam->vphi[ip], &gamma,
                             pz, pr, r_pphi, r);
+#if DEBUG
+      fprintf(stdout, "Velocities: (%e, %e, %e)\n",
+              beam->vz[ip], beam->vr[ip], beam->vphi[ip]);
+      fflush(stdout);
+#endif
 
       for (is = 0; is < n_screens; is++)
         {
@@ -456,11 +438,15 @@ void advance_particles(
             }
         }
 
+#if DEBUG
+      fprintf(stdout, "Done processing screens\n");
+      fflush(stdout);
+#endif
+
       if (is_lost)
         {
           double p;
           double zLost, rLost;
-
           p = sqr(beam->pz[ip]) + sqr(beam->pr[ip]);
           if (beam->r[ip])
             p += sqr(beam->r_pphi[ip] / beam->r[ip]);
@@ -513,6 +499,7 @@ void advance_particles(
                 }
             }
           beam->np -= 1;
+          beam->npActive -= 1;
           beam->Q[ip] = beam->Q[beam->np];
           beam->z[ip] = beam->z[beam->np];
           beam->r[ip] = beam->r[beam->np];
@@ -537,6 +524,10 @@ void advance_particles(
           newLost++;
           continue;
         }
+#if DEBUG
+      fprintf(stdout, "Done processing lost particles\n");
+      fflush(stdout);
+#endif
     }
 
   if (newLost)
@@ -581,6 +572,10 @@ void advance_particles(
             }
         }
     }
+#if DEBUG
+  fprintf(stdout, "Done advancing particles\n");
+  fflush(stdout);
+#endif
 }
 
 void setUpLostParticleFile(SDDS_DATASET *SDDSout, char *filename0, char *rootname)
