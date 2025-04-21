@@ -6,9 +6,9 @@ URL:		http://www.aps.anl.gov/asd/oag/oaghome.shtml
 Packager:	Robert Soliday <soliday@aps.anl.gov>
 Prefix:		%{_bindir}
 Autoreq:	0
-Version:	4.9.0
+Version:	4.10.0
 Release:	1
-Source:		spiffe-4.9.0.tar.gz
+Source:		spiffe-4.10.0.tar.gz
 
 
 %define debug_package %{nil}
