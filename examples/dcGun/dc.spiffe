@@ -39,5 +39,5 @@
     dt_integration = 8.5449218749999995e-14, status_interval = 256,
     start_time = 0, finish_time = 700e-12, check_divergence = 1,
     smoothing_parameter = 0, J_filter_multiplier = 0, space_charge = 1,
-    terminate_on_total_loss = 1
+    terminate_on_total_loss = 1, auto_max_dt = 1
 &end

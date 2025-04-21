@@ -94,9 +94,17 @@ void perform_integration(
   dtC = MIN(EM_problem->dz, EM_problem->dr) / c_mks / sqrt(2.0);
   if (dtC < EM_problem->dti)
     {
-      printf("error: the time step must be less than %es for stable integration.\n",
-             dtC);
-      exit(1);
+      if (auto_max_dt)
+        {
+          printf("warning: dt_integration (%e) exceeds max stable dt (%e); using max dt\n", dt_integration, dtC);
+          EM_problem->dti = dtC;
+          EM_problem->n_time_steps = (finish_time - start_time) / EM_problem->dti;
+        }
+      else
+        {
+          printf("error: the time step must be less than %es for stable integration.\n", dtC);
+          exit(1);
+        }
     }
 
   Jm1 = 1;

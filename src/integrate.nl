@@ -21,4 +21,5 @@
     STRING lost_particles = NULL;
     double imposed_Efield_ramp_time = 0;
     double imposed_Efield_flat_top_time = 1;
+    long auto_max_dt = 0;    /* if non-zero, use maximum stable dt when dt_integration too large */
 #end
