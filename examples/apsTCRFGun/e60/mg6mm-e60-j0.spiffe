@@ -1,0 +1,51 @@
+&define_geometry
+    nz = 165, nr = 165, zmin = 0.0, zmax = 0.0959148653920, rmax=0.04289777777,
+    boundary = "mg6mm-e60-j0.geo", boundary_output = mg6mm-e60-j0.bnd,
+    radial_interpolation=1, longitudinal_interpolation=1
+&end
+
+&load_fields
+    filename = "../excite/mg6mm-8.fsave.best", factor=36.80976e6, overlay=1
+&end
+
+&load_fields
+    filename = "../excite/mg6mm-3.fsave.best", factor=60.0000e6, overlay=1
+&end
+
+&define_cathode
+    z_position = 0, outer_radius = 0.003,
+    current_density = 1e-12, start_time = 0, stop_time = 200e-12,
+    number_per_step = 8, initial_pz = 0,
+    distribution_correction_interval = 1
+&end
+
+&define_screen
+    filename = "mg6mm-e60-j0.sc1", z_position = 0.032242337, direction = "forward"
+&end
+
+&define_screen
+    filename = "mg6mm-e60-j0.sc2", z_position = 0.09571667, direction = "forward"
+&end
+
+&define_snapshots
+    filename = "mg6mm-e60-j0.snap", time_interval = 43.75e-12, start_time = 0
+&end
+
+
+&define_field_output
+        filename = "mg6mm-e60-j0.fld", time_interval = 43.75e-12, start_time = 43.75e-12,
+        z_interval=2, r_interval=4
+&end
+
+&poisson_correction
+    step_interval = 32, accuracy=1e-4, verbosity = 1,
+    error_charge_threshold = 1e-15
+&end
+
+! 4096 steps per 350ps 
+&integrate
+    dt_integration = 8.5449218749999995e-14, status_interval = 256,
+    start_time = 0, finish_time = 700e-12, check_divergence = 1,
+    smoothing_parameter = 0, J_filter_multiplier = 0, space_charge = 1,
+    terminate_on_total_loss = 1
+&end

@@ -1,0 +1,15 @@
+#!/bin/sh
+# \
+exec tclsh "$0" "$@"
+
+puts stderr "Running first cell. Please be patient."
+# excite the first cell
+exec spiffe mg6mm-8.spiffe > mg6mm-8.log
+# excite the second cell
+puts stderr "Running second cell. Please be patient."
+exec spiffe mg6mm-3.spiffe > mg6mm-3.log
+# select best cycles for each cell
+puts stderr "Selecting best cycles for each cell."
+catch {eval exec "tclsh chooseBestPhase mg6mm-8.fsave  mg6mm-3.fsave  mg6mm-8a.samp  mg6mm-3c.samp"} result
+puts stderr "$result"
+puts stderr "** You are now ready to run beam simulations in ../e60"

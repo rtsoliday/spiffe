@@ -1,0 +1,44 @@
+&define_geometry
+    nz = 165, nr = 165, zmin = 0.0, zmax = 0.0959148653920, rmax=0.04289777777,
+    boundary = "mg6mm-8.geo", boundary_output = "mg6mm-8.bnd",
+&end
+
+! drive with a spline-enveloped sine wave
+&define_antenna
+    start = 0.01, end = 0.015, position=0.015,
+    direction = "z", current=1.5459472817133444, frequency=2856e6,
+    phase = -0.0096779,
+    waveform = "spline4.wf"
+&end
+
+
+&define_field_saving
+    filename = "mg6mm-8.fsave", time_interval = 350e-12, 
+    start_time = 7.0e-9, save_before_exiting = 1
+&end
+
+! first cell
+&define_field_sampling
+    filename = "mg6mm-8a.samp", direction = "z", component = "Ez",
+    min_coord = 0.017, max_coord = 0.018, position=0.0,
+    time_interval=6.8359375e-13, start_time = 0.0e-9, time_sequence = 1
+&end
+
+! second cell
+&define_field_sampling
+    filename = "mg6mm-8c.samp", direction = "z", component = "Ez",
+    min_coord = 0.0485, max_coord = 0.0495, position=0.0,
+    time_interval=6.8359375e-13, start_time = 0.0e-9, time_sequence = 1
+&end
+
+&define_field_sampling
+    filename = "mg6mm-8.zEz", direction = "z", component = "Ez",
+    min_coord = 0.0, max_coord = 0.095716675, position=0.0,
+    time_interval=87.5001e-12, start_time = 7.0e-9, time_sequence = 0
+&end
+
+! 1024 steps per 350ps 
+&integrate
+    dt_integration = 3.4179687499999998e-13, status_interval = 512,
+    start_time = 0, finish_time = 9.8e-9
+&end

@@ -1,0 +1,48 @@
+#!/bin/sh
+# \
+exec tclsh "$0" "$@"
+
+if {[llength $argv]!=1 || [string length [lindex $argv 0]]==0} {
+    puts stderr "Usage: examplePlots <rootname>"
+    exit 1
+}
+set rootname [lindex $argv 0]
+if ![file exists $rootname.spiffe] {
+    puts stderr "$rootname.spiffe not found.  Rootname invalid."
+    exit 1
+}
+
+# plots of field vectors, cavity profile, and particles
+if [catch {exec sddsplot -filter=column,r,-1,20e-3 \
+    "-title=spiffe simulation $rootname of APS Thermionic RF gun" \
+    -groupby=page -split=page -sep=page \
+    -col=z,r,Ez,Er $rootname.fld -arrow=auto,cart,scale=2 \
+    -sparse=3 \
+    -column=z,r $rootname.snap -graph=dot,type=2,vary -split=page,column=r0,width=0.5e-3 \
+    -column=z,r $rootname.bnd -omnipresent -graph=line,type=1 &} result] {
+    puts stderr "$result"
+}
+# plots of Ez vs z
+if [catch {exec sddsplot -col=z,Ez -filter=col,r,-1e-5,1e-5 $rootname.fld -same -split=page -sep=page \
+    "-title=On-axis Ez field for $rootname" &} result] {
+    puts stderr "$result"
+}
+# plots of Er vs z
+if [catch {exec sddsplot -col=z,Er -filter=col,r,1e-3,1.1e-3 $rootname.fld -same -split=page -sep=page \
+    "-title=Er field at 1mm for $rootname" &} result] {
+    puts stderr "$result"
+}
+
+# plots of particles at "screens"
+if [catch {exec sddsplot $rootname.sc1 -graph=dot,vary \
+    "-title=Phase space at the first screen for $rootname." \
+    -split=column=r0,width=0.5e-3 \
+    -col=r,pr -end -col=t,pz -end &} result] {
+    puts stderr "$result"
+}
+if [catch {exec sddsplot $rootname.sc2 -graph=dot,vary \
+    "-title=Phase space at the second screen for $rootname." \
+    -split=column=r0,width=0.5e-3 \
+    -col=r,pr -end -col=t,pz -end &} result] {
+    puts stderr "$result"
+}
