@@ -4,7 +4,7 @@ exec tclsh "$0" "$@"
 
 set dir [pwd]
 
-set version 4.9.0
+set version 4.10.0
 set name spiffe-$version
 puts "Building $name RPM"
 

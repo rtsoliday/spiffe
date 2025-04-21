@@ -62,7 +62,7 @@ screen.  Space charge is included.
         This function is rarely used and I do not recommend it.
     \item {\tt J\_filter\_multiplier}: Specifies a simple time-domain filter for the
         current density.  For each point on the grid, the new current density value $J(1)$ is
-        replaced by $J(1)*(1-f) + J(0)*f$.  This is an infinite impulse response filter.
+        replaced by $J(1)*(1-f) + J(0)*f.  This is an infinite impulse response filter.
         This function is rarely used and I do not recommend it.
     \item {\tt terminate\_on\_total\_loss}: Flag requesting that when all simulation particles
         are lost (e.g., by hitting a wall or exiting the simulation), the simulation should
@@ -71,6 +71,7 @@ screen.  Space charge is included.
         including statistics on the beams and fields.  File is in SDDS format.
     \item {\tt lost\_particles}: Provide the name of a file to which to write information about
         particles that get lost.  File is in SDDS format.
+    \item {\tt auto\_max\_dt}: if non-zero, dt\_integration exceeding the maximum stable timestep is replaced by the maximum.
 \end{itemize}
 
 \end{itemize}

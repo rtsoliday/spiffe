@@ -72,8 +72,7 @@ char *command[N_COMMANDS] = {
   "define_emitter",
 };
 
-char *USAGE = "spiffe inputfile\nProgram by M. Borland (This is version 4.9.0, "__DATE__
-  ")";
+char *USAGE = "spiffe inputfile\nProgram by M. Borland (This is version 4.10.0, "__DATE__")";
 
 #if defined(CONDOR_COMPILE)
 void init_image_with_file_name(char *ckpt_file_name);

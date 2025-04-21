@@ -1,0 +1,75 @@
+#!/bin/sh
+# \
+exec tclshXX "$0" "$@"
+set args $argv
+
+set usage "usage: chooseBestPhase <fieldSave1> <fieldSave2> <timeSamples1> <timeSamples2>"
+if [llength $args]!=4 {
+    puts stderr "$usage"
+    exit 1
+}
+set fsave1 [lindex $args 0]
+set fsave2 [lindex $args 1]
+set tsamples1 [lindex $args 2]
+set tsamples2 [lindex $args 3]
+set args $argv
+if {![string length $fsave1] || ![string length $fsave2] || \
+    ![string length $tsamples1] || ![string length $tsamples1]} {
+    puts stderr $usage
+    exit 1
+}
+
+foreach var {fsave1 fsave2 tsamples1 tsamples2} {
+    puts stderr [subst \$$var]
+    if ![file exists [subst \$$var]] {
+        puts stderr "Not found: [subst \$$var]"
+        exit 1
+    }
+}
+
+foreach set {1 2} {
+    puts stderr "Working on set $set"
+    set fsave [subst \$fsave$set]
+    set tsamples [subst \$tsamples$set]
+    if ![file exists $fsave.clps] {
+        exec sddscollapse $fsave $fsave.clps 
+    }
+    exec sddsprocess $tsamples -pipe=out -filter=column,t,7e-9,1 \
+      | sddszerofind -pipe -zeroesOf=Ez -columns=t -slopeOutput \
+      | sddsconvert -pipe=in $tsamples.zc -edit=column,*,ei/$set/
+    puts stderr "Done."
+}
+
+set tmpFile tmp[clock seconds].[pid]
+catch {exec sddsxref $tsamples1.zc $tsamples2.zc -pipe=out -take=* \
+         | sddsprocess -pipe \
+         "-define=column,dtAbs,t2 t1 - abs,units=s" \
+         -process=dtAbs,min,dtAbsMin \
+         -process=dtAbs,min,t1Best,function=t1,position \
+         -process=dtAbs,min,t2Best,function=t2,position \
+         | sdds2stream -pipe \
+         -parameter=t1Best,t2Best} bestList
+set t1Best [lindex $bestList 0]
+set t2Best [lindex $bestList 1]
+
+catch {exec sddsprocess $fsave1.clps -pipe=out -define=column,Index,i_row,type=long \
+         "-test=column,time $t1Best <" \
+         "-define=column,timeDifference,time $t1Best - abs,units=s" \
+         -process=timeDifference,min,pageBest,function=Index,position \
+         -process=timeDifference,min,timeBest,function=time,position \
+         | sdds2stream -pipe -parameter=timeBest,pageBest} time1Best
+catch {exec sddsprocess $fsave2.clps -pipe=out -define=column,Index,i_row,type=long \
+         "-test=column,time $t2Best <" \
+         "-define=column,timeDifference,time $t2Best - abs,units=s" \
+         -process=timeDifference,min,pageBest,function=Index,position \
+         -process=timeDifference,min,timeBest,function=time,position \
+         | sdds2stream -pipe -parameter=timeBest,pageBest} time2Best
+
+puts stderr "[join $time1Best ,]  [join $time2Best ,]"
+foreach set {1 2} {
+    set bestList [subst \$time${set}Best]
+    set pageBest [lindex $bestList 1]
+    puts stderr "Making [subst \$fsave$set].best"
+    exec sddsprocess [subst \$fsave$set] [subst \$fsave$set].best \
+      "-test=parameter,i_page $pageBest =="
+}
