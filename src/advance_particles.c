@@ -72,19 +72,15 @@ void advance_particles(
     SECONDARY_EMISSION *secondaryEmission,
     long nSecondaryDefns)
 {
-  /*double fa, fb, fr, fl;*/
   double z0, r0, z, r, pz = 0, pr = 0, vz = 0, vr = 0, r_pphi = 0, vphi = 0, gamma, dtp, pphi;
   double pz0 = 0, pr0 = 0, r_pphi0 = 0, pphi0 = 0, r0Save, z0Save;
-  long ip, is, ib, iz, ir, r_was_negative, is_lost, i;
-  // long n_lost;
-  /*long longit_interp, radial_interp, nr, nz;*/
+  long ip, is, ib, iz, ir, r_was_negative, i;
+  short *is_lost;
   short lossCode;
   double zmin, dz, dr, zmax, rmax;
   double Ez, Er, Bphi, Ephi, Br, Bz, dt;
-  /*double EzOOE, ErOOE, BphiOOE;*/
   double z_tb1 = 0, r_tb1 = 0, adjustFactor;
-  /*double dtAdjust;*/
-  long maxLost, nExtra = 0, newLost = 0;
+  long maxLost, newLost = 0;
   double max_r, ave_z, ave_vz;
   short directionCode;
 #if defined(DEBUG)
@@ -100,12 +96,7 @@ void advance_particles(
   zmin = EM_problem->zmin;
   zmax = EM_problem->zmax;
   rmax = EM_problem->rmax;
-  /*nz = EM_problem->nz;
-    nr = EM_problem->nr;*/
-  // n_lost = 0;
   maxLost = 0;
-  /*longit_interp = EM_problem->modes&FL_LONGIT_INTERP;
-    radial_interp = EM_problem->modes&FL_RADIAL_INTERP;*/
 
   if (test_beam_defn->electrons_per_macroparticle)
   {
@@ -113,125 +104,116 @@ void advance_particles(
     z_tb1 = test_beam_defn->z_start_deceleration;
   }
 
+  /* Pre-allocate screen buffers to avoid memory allocation locks during OpenMP parallel loops */
   for (is = 0; is < n_screens; is++)
+  {
     screen_defn[is].nb = 0;
+    screen_defn[is].max_nb = beam->max_np;
+    for (i = 0; i < N_SCREEN_QUANS; i++)
+      screen_defn[is].buffer[i] = malloc(sizeof(*screen_defn[is].buffer[i]) * screen_defn[is].max_nb);
+    screen_defn[is].generation = malloc(sizeof(*screen_defn[is].generation) * screen_defn[is].max_nb);
+    screen_defn[is].particleID = malloc(sizeof(*screen_defn[is].particleID) * screen_defn[is].max_nb);
+    screen_defn[is].rmin = malloc(sizeof(*screen_defn[is].rmin) * screen_defn[is].max_nb);
+    screen_defn[is].rmax = malloc(sizeof(*screen_defn[is].rmax) * screen_defn[is].max_nb);
+    screen_defn[is].zmin = malloc(sizeof(*screen_defn[is].zmin) * screen_defn[is].max_nb);
+    screen_defn[is].zmax = malloc(sizeof(*screen_defn[is].zmax) * screen_defn[is].max_nb);
+  }
   max_r = 0;
   ave_z = ave_vz = 0;
-  if (beam->np == 0)
-    nExtra = 0;
   EM_problem->EzOOEMin = HUGE;
   EM_problem->EzOOEMax = -HUGE;
 
+  is_lost = (short *)malloc(sizeof(*is_lost) * beam->max_np);
+
 #if DEBUG
-  fprintf(stdout, "%ld particles, %ld active particles, %ld extra particles\n",
-          beam->np, beam->npActive, nExtra);
+  fprintf(stdout, "%ld particles, %ld active particles\n",
+          beam->np, beam->npActive);
   fflush(stdout);
 #endif
-  for (ip = 0; ip < beam->np + nExtra; ip++)
+  for (ip = 0; ip < beam->np; ip++)
   {
 #if DEBUG
     fprintf(stdout, "Particle %ld of %ld: %s, z=%e, r=%e, pz=%e, pr=%e, r_pphi=%e, vz=%e, vr=%e, vphi=%e\n",
-            ip, beam->np + nExtra, beam->status[ip] & PART_ACTIVE ? "active" : "inactive",
+            ip, beam->np, beam->status[ip] & PART_ACTIVE ? "active" : "inactive",
             beam->z[ip], beam->r[ip], beam->pz[ip], beam->pr[ip], beam->r_pphi[ip],
             beam->vz[ip], beam->vr[ip], beam->vphi[ip]);
     fflush(stdout);
 #endif
 
-    /*dtAdjust = 0;*/
     adjustFactor = 1;
     z = z0 = r = r0 = z0Save = r0Save = 0;
 
-    if (ip < beam->np)
+    /* (z, r) values are at t-dt (synchronized with Ez, Er). */
+    z = z0 = z0Save = beam->z[ip];
+    r = r0 = r0Save = beam->r[ip];
+
+    /* update statistics on particle motion */
+    if (z > beam->zmax[ip])
+      beam->zmax[ip] = z;
+    if (z < beam->zmin[ip])
+      beam->zmin[ip] = z;
+    if (r > beam->rmax[ip])
+      beam->rmax[ip] = r;
+    if (r < beam->rmin[ip])
+      beam->rmin[ip] = r;
+
+    /* (vz, vr, pz, pr) values are at t-dt/2 (synchronized with Bphi). */
+    vz = beam->vz[ip];
+    vr = beam->vr[ip];
+
+    /* use (vz, vr) to advance (z, r) to time t */
+    z += vz * dt;
+    r += vr * dt;
+    if (!(beam->status[ip] & PART_ACTIVE))
     {
-
-      /* (z, r) values are at t-dt (synchronized with Ez, Er). */
-      z = z0 = z0Save = beam->z[ip];
-      r = r0 = r0Save = beam->r[ip];
-
-      /* update statistics on particle motion */
-      if (z > beam->zmax[ip])
-        beam->zmax[ip] = z;
-      if (z < beam->zmin[ip])
-        beam->zmin[ip] = z;
-      if (r > beam->rmax[ip])
-        beam->rmax[ip] = r;
-      if (r < beam->rmin[ip])
-        beam->rmin[ip] = r;
-
-      /* (vz, vr, pz, pr) values are at t-dt/2 (synchronized with Bphi). */
-      vz = beam->vz[ip];
-      vr = beam->vr[ip];
-
-      /* use (vz, vr) to advance (z, r) to time t */
-      z += vz * dt;
-      r += vr * dt;
-      if (!(beam->status[ip] & PART_ACTIVE))
+      iz = (z - zmin) / dz;
+      ir = fabs(r) / dr;
+      if (!(!(z >= EM_problem->zmin && z <= EM_problem->zmax && r <= EM_problem->rmax) ||
+            checkLossCode(iz, ir, EM_problem)))
       {
-        iz = (z - zmin) / dz;
-        ir = fabs(r) / dr;
-        if (!(!(z >= EM_problem->zmin && z <= EM_problem->zmax && r <= EM_problem->rmax) ||
-              checkLossCode(iz, ir, EM_problem)))
+        beam->status[ip] |= PART_ACTIVE;
+        beam->npActive++;
+        beam->t0[ip] = EM_problem->time;
+        beam->r0[ip] = beam->r[ip];
+        beam->z0[ip] = beam->z[ip];
+        /* Assume the particle entered on the left. This factor is used to adjust the integral
+         * of the force applied on this step
+         */
+        if (iz > 0 && checkLossCode(iz - 1, ir, EM_problem))
+          adjustFactor = (z - (iz * EM_problem->dz + EM_problem->zmin)) / (z - z0);
+        else
+          adjustFactor = (z - EM_problem->zmin) / (z - z0);
+        if (adjustFactor > 1)
+          adjustFactor = 1;
+      }
+    }
+    if (zForcesStart > EM_problem->zmin && zForcesStart < EM_problem->zmax)
+    {
+      if (z0 < zForcesStart)
+      {
+        if (z < zForcesStart)
+          adjustFactor = 0;
+        else
         {
-          beam->status[ip] |= PART_ACTIVE;
-          beam->npActive++;
-          beam->t0[ip] = EM_problem->time;
-          beam->r0[ip] = beam->r[ip];
-          beam->z0[ip] = beam->z[ip];
-          /* Assume the particle entered on the left. This factor is used to adjust the integral
-           * of the force applied on this step
-           */
-          if (iz > 0 && checkLossCode(iz - 1, ir, EM_problem))
-            adjustFactor = (z - (iz * EM_problem->dz + EM_problem->zmin)) / (z - z0);
-          else
-            adjustFactor = (z - EM_problem->zmin) / (z - z0);
-          if (adjustFactor > 1)
-            adjustFactor = 1;
+          adjustFactor = (z - zForcesStart) / (z - z0);
         }
       }
-      if (zForcesStart > EM_problem->zmin && zForcesStart < EM_problem->zmax)
-      {
-        if (z0 < zForcesStart)
-        {
-          if (z < zForcesStart)
-            adjustFactor = 0;
-          else
-          {
-            adjustFactor = (z - zForcesStart) / (z - z0);
-          }
-        }
-      }
-      pz = pz0 = beam->pz[ip];
-      pr = pr0 = beam->pr[ip];
-      r_pphi = r_pphi0 = beam->r_pphi[ip];
-      vphi = beam->vphi[ip];
-      if (r > max_r)
-        max_r = r;
-      ave_z += z;
-      ave_vz += vz;
     }
-    else
-    {
-      /* set values for field interpolation test output */
-      if (ip == beam->np)
-      {
-        ave_z /= beam->npActive;
-        ave_vz /= beam->npActive;
-      }
-      z = z0 = ave_z;
-      r = r0 = (ip - beam->np) * (max_r / nExtra);
-      vz = ave_vz;
-      pz = pz0 = vz / c_mks / sqrt(1 - sqr(vz / c_mks));
-      pr = pr0 = 0;
-      vr = vphi = 0;
-      r_pphi = r_pphi0 = 0;
-    }
+    pz = pz0 = beam->pz[ip];
+    pr = pr0 = beam->pr[ip];
+    r_pphi = r_pphi0 = beam->r_pphi[ip];
+    vphi = beam->vphi[ip];
+    if (r > max_r)
+      max_r = r;
+    ave_z += z;
+    ave_vz += vz;
 
-    is_lost = 0;
+    is_lost[ip] = 0;
     lossCode = 0;
     if ((beam->status[ip] & PART_ACTIVE) && (z < zmin || z > zmax || r > rmax))
     {
       lossCode = 1;
-      is_lost = 1;
+      is_lost[ip] = 1;
     }
 
     /* to determine if particle is inside metal, compute indices of left/bottom grid point */
@@ -244,17 +226,17 @@ void advance_particles(
     if ((beam->status[ip] & PART_ACTIVE) && (iz > EM_problem->nz || ir > EM_problem->nr || iz < 0 || ir < 0))
     {
       lossCode = 2;
-      is_lost = 1;
+      is_lost[ip] = 1;
     }
 
-    if (!is_lost && (beam->status[ip] & PART_ACTIVE))
+    if (!is_lost[ip] && (beam->status[ip] & PART_ACTIVE))
     {
       if ((lossCode = checkLossCode(iz, ir, EM_problem)))
-        is_lost = 1;
+        is_lost[ip] = 1;
     }
 
 #if DEBUG
-    if (is_lost)
+    if (is_lost[ip])
       fprintf(stdout, "particle %ld lost: z=%e, r=%e\n", ip, z, r);
 #endif
     r_was_negative = 0;
@@ -265,7 +247,7 @@ void advance_particles(
       r_was_negative = 1;
     }
 
-    if (!is_lost && (beam->status[ip] & PART_ACTIVE))
+    if (!is_lost[ip] && (beam->status[ip] & PART_ACTIVE))
     {
       /* update statistics on particle motion */
       if (z > beam->zmax[ip])
@@ -350,7 +332,7 @@ void advance_particles(
     {
       if (screen_defn[is].z_position <= z && screen_defn[is].z_position > z0 && screen_defn[is].direction == 1)
       {
-        if (is_lost)
+        if (is_lost[ip])
         {
           fprintf(stderr, "*** WARNING: a particle is recorded on screen %s that is lost in the same time-step.\n",
                   screen_defn[is].filename);
@@ -396,7 +378,7 @@ void advance_particles(
       }
       else if (screen_defn[is].z_position >= z && screen_defn[is].z_position < z0 && screen_defn[is].direction == -1)
       {
-        if (is_lost)
+        if (is_lost[ip])
         {
           fprintf(stderr, "*** WARNING: a particle is recorded on screen %s that is lost in the same time-step.\n",
                   screen_defn[is].filename);
@@ -446,7 +428,17 @@ void advance_particles(
     fflush(stdout);
 #endif
 
-    if (is_lost)
+    if (is_lost[ip])
+    {
+      beam->status[ip] &= ~PART_ACTIVE;
+      beam->status[ip] |= PART_LOST;
+    }
+  }
+
+  /* now, write out lost particles */
+  for (ip = 0; ip < beam->np; ip++)
+  {
+    if (is_lost[ip])
     {
       double p;
       double zLost, rLost;
@@ -459,9 +451,6 @@ void advance_particles(
         queueSecondaryEmission(secondaryEmission, nSecondaryDefns, p,
                                zLost, rLost, directionCode, beam->Q[ip],
                                beam->generation[ip], EM_problem, beam);
-
-      beam->status[ip] &= ~PART_ACTIVE;
-      beam->status[ip] |= PART_LOST;
       if (SDDSlost)
       {
         if (newLost && newLost >= maxLost)
@@ -490,17 +479,21 @@ void advance_particles(
                                "q", (float)beam->Q[ip],
                                "generation", beam->generation[ip],
                                "particleID", beam->particleID[ip],
-#ifdef DEBUG
-                               "lossCode", lossCode,
-                               "iz", izNew, "ir", irNew,
-                               "zLast", z, "rLast", r,
-#endif
                                NULL))
         {
           SDDS_SetError("Problem writing lost particle data.");
           SDDS_PrintErrors(stderr, SDDS_EXIT_PrintErrors | SDDS_VERBOSE_PrintErrors);
         }
+        newLost++;
       }
+    }
+  }
+
+  /* now, remove lost particles from beam */
+  for (ip = 0; ip < beam->np; ip++)
+  {
+    if (is_lost[ip])
+    {
       beam->np -= 1;
       beam->npActive -= 1;
       beam->Q[ip] = beam->Q[beam->np];
@@ -523,14 +516,7 @@ void advance_particles(
       beam->particleID[ip] = beam->particleID[beam->np];
       beam->status[ip] = beam->status[beam->np];
       ip--;
-      // n_lost++;
-      newLost++;
-      continue;
     }
-#if DEBUG
-    fprintf(stdout, "Done processing lost particles\n");
-    fflush(stdout);
-#endif
   }
 
   if (newLost)
@@ -540,7 +526,6 @@ void advance_particles(
       SDDS_SetError("Problem writing lost particle data.");
       SDDS_PrintErrors(stderr, SDDS_EXIT_PrintErrors | SDDS_VERBOSE_PrintErrors);
     }
-    /* printf("%ld particles lost\n", n_lost);  */
   }
 
   for (is = 0; is < n_screens; is++)
