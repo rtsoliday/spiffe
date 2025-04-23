@@ -510,6 +510,13 @@ void advance_particles(
     }
   }
 
+  free(is_lost);
+  free(r_was_negative);
+  free(zz); 
+  free(rr); 
+  free(z0Save);
+  free(r0Save);
+
   if (newLost)
   {
     if (SDDSlost && !SDDS_WritePage(SDDSlost))
@@ -551,6 +558,7 @@ void advance_particles(
       }
     }
   }
+
 #if DEBUG
   fprintf(stdout, "Done advancing particles\n");
   fflush(stdout);
