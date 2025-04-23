@@ -13,16 +13,19 @@
  * Michael Borland, 1992
  */
 #include "spiffe.h"
+#ifdef _OPENMP
+ #include <omp.h>
+#endif
 
 /* for non-ANSI systems */
 #if defined(__linux__)
-#ifndef HUGE_VAL
-#define HUGE_VAL HUGE
-#else
-#ifndef HUGE
-#define HUGE HUGE_VAL
-#endif
-#endif
+ #ifndef HUGE_VAL
+  #define HUGE_VAL HUGE
+ #else
+  #ifndef HUGE
+   #define HUGE HUGE_VAL
+  #endif
+ #endif
 #endif
 
 short checkLossCode(long iz, long ir, FIELDS *EM_problem)
@@ -72,14 +75,13 @@ void advance_particles(
     SECONDARY_EMISSION *secondaryEmission,
     long nSecondaryDefns)
 {
-  double z0, r0, z, r, pz = 0, pr = 0, vz = 0, vr = 0, r_pphi = 0, vphi = 0, gamma, dtp, pphi;
-  double pz0 = 0, pr0 = 0, r_pphi0 = 0, pphi0 = 0, r0Save, z0Save;
-  long ip, is, ib, iz, ir, r_was_negative, i;
-  short *is_lost;
-  short lossCode;
+  double *zz, *rr, *z0Save, *r0Save;
+  double pz0 = 0, pr0 = 0, r_pphi0 = 0, pphi0 = 0;
+  long ip, is, ib, i;
+  short *is_lost, *r_was_negative;
   double zmin, dz, dr, zmax, rmax;
   double Ez, Er, Bphi, Ephi, Br, Bz, dt;
-  double z_tb1 = 0, r_tb1 = 0, adjustFactor;
+  double z_tb1 = 0, r_tb1 = 0;
   long maxLost, newLost = 0;
   double max_r, ave_z, ave_vz;
   short directionCode;
@@ -124,14 +126,27 @@ void advance_particles(
   EM_problem->EzOOEMax = -HUGE;
 
   is_lost = (short *)malloc(sizeof(*is_lost) * beam->max_np);
+  r_was_negative = (short *)malloc(sizeof(*r_was_negative) * beam->max_np);
+  zz = (double *)malloc(sizeof(*zz) * beam->max_np);
+  rr = (double *)malloc(sizeof(*rr) * beam->max_np);
+  z0Save = (double *)malloc(sizeof(*z0Save) * beam->max_np);
+  r0Save = (double *)malloc(sizeof(*r0Save) * beam->max_np);
+
 
 #if DEBUG
   fprintf(stdout, "%ld particles, %ld active particles\n",
           beam->np, beam->npActive);
   fflush(stdout);
 #endif
+
+//#pragma omp parallel for reduction(max: max_r) reduction(+: ave_z, ave_vz)
+#pragma omp parallel for \
+  reduction(max: max_r) reduction(+: ave_z, ave_vz)
   for (ip = 0; ip < beam->np; ip++)
   {
+    double z, r, z0, r0, vz = 0, vr = 0, pz = 0, pr = 0, r_pphi = 0, vphi = 0, gamma, dtp, pphi, adjustFactor=1;
+    long iz, ir;
+    short lossCode;
 #if DEBUG
     fprintf(stdout, "Particle %ld of %ld: %s, z=%e, r=%e, pz=%e, pr=%e, r_pphi=%e, vz=%e, vr=%e, vphi=%e\n",
             ip, beam->np, beam->status[ip] & PART_ACTIVE ? "active" : "inactive",
@@ -139,13 +154,11 @@ void advance_particles(
             beam->vz[ip], beam->vr[ip], beam->vphi[ip]);
     fflush(stdout);
 #endif
-
-    adjustFactor = 1;
-    z = z0 = r = r0 = z0Save = r0Save = 0;
+    z = z0 = r = r0 = z0Save[ip] = r0Save[ip] = 0;
 
     /* (z, r) values are at t-dt (synchronized with Ez, Er). */
-    z = z0 = z0Save = beam->z[ip];
-    r = r0 = r0Save = beam->r[ip];
+    z = z0 = z0Save[ip] = beam->z[ip];
+    r = r0 = r0Save[ip] = beam->r[ip];
 
     /* update statistics on particle motion */
     if (z > beam->zmax[ip])
@@ -172,7 +185,10 @@ void advance_particles(
             checkLossCode(iz, ir, EM_problem)))
       {
         beam->status[ip] |= PART_ACTIVE;
-        beam->npActive++;
+        {
+          #pragma omp atomic
+          beam->npActive++;
+        }
         beam->t0[ip] = EM_problem->time;
         beam->r0[ip] = beam->r[ip];
         beam->z0[ip] = beam->z[ip];
@@ -239,12 +255,12 @@ void advance_particles(
     if (is_lost[ip])
       fprintf(stdout, "particle %ld lost: z=%e, r=%e\n", ip, z, r);
 #endif
-    r_was_negative = 0;
+    r_was_negative[ip] = 0;
     if (r < 0)
     {
       r *= -1;
       pr *= -1;
-      r_was_negative = 1;
+      r_was_negative[ip] = 1;
     }
 
     if (!is_lost[ip] && (beam->status[ip] & PART_ACTIVE))
@@ -302,7 +318,7 @@ void advance_particles(
         if (pz < 0)
           pz = 0;
       }
-      if (r_was_negative)
+      if (r_was_negative[ip])
         pr = 0;
       else if (r <= r_tb1)
         pr += dt * test_beam_defn->r_force;
@@ -338,43 +354,27 @@ void advance_particles(
                   screen_defn[is].filename);
           fprintf(stderr, "The data for this particle is unreliable--consider moving the screen to z-dz.\n");
         }
-        if (screen_defn[is].nb >= screen_defn[is].max_nb)
-        {
-          screen_defn[is].max_nb += 10;
-          for (i = 0; i < N_SCREEN_QUANS; i++)
-            screen_defn[is].buffer[i] =
-                trealloc(screen_defn[is].buffer[i], sizeof(*screen_defn[is].buffer[i]) * screen_defn[is].max_nb);
-          screen_defn[is].generation =
-              trealloc(screen_defn[is].generation, sizeof(*screen_defn[is].generation) * screen_defn[is].max_nb);
-          screen_defn[is].particleID =
-              trealloc(screen_defn[is].particleID, sizeof(*screen_defn[is].particleID) * screen_defn[is].max_nb);
-          screen_defn[is].rmin =
-              trealloc(screen_defn[is].rmin, sizeof(*screen_defn[is].rmin) * screen_defn[is].max_nb);
-          screen_defn[is].rmax =
-              trealloc(screen_defn[is].rmax, sizeof(*screen_defn[is].rmax) * screen_defn[is].max_nb);
-          screen_defn[is].zmin =
-              trealloc(screen_defn[is].zmin, sizeof(*screen_defn[is].zmin) * screen_defn[is].max_nb);
-          screen_defn[is].zmax =
-              trealloc(screen_defn[is].zmax, sizeof(*screen_defn[is].zmax) * screen_defn[is].max_nb);
-        }
         dtp = (screen_defn[is].z_position - z0) / vz;
-        screen_defn[is].buffer[0][screen_defn[is].nb] = r0 + vr * dtp;
-        screen_defn[is].buffer[1][screen_defn[is].nb] = pz0 + (pz - pz0) / dt * dtp;
-        screen_defn[is].buffer[2][screen_defn[is].nb] = pr0 + (pr - pr0) / dt * dtp;
         pphi = r ? r_pphi / r : 0;
         pphi0 = r0 ? r_pphi0 / r0 : 0;
-        screen_defn[is].buffer[3][screen_defn[is].nb] = pphi0 + (pphi - pphi0) / dt * dtp;
-        screen_defn[is].buffer[4][screen_defn[is].nb] = (EM_problem->time - dt + dtp);
-        screen_defn[is].buffer[5][screen_defn[is].nb] = beam->Q[ip];
-        screen_defn[is].buffer[6][screen_defn[is].nb] = beam->r0[ip];
-        screen_defn[is].buffer[7][screen_defn[is].nb] = beam->t0[ip];
-        screen_defn[is].rmin[screen_defn[is].nb] = beam->rmin[ip];
-        screen_defn[is].rmax[screen_defn[is].nb] = beam->rmax[ip];
-        screen_defn[is].zmin[screen_defn[is].nb] = beam->zmin[ip];
-        screen_defn[is].zmax[screen_defn[is].nb] = beam->zmax[ip];
-        screen_defn[is].generation[screen_defn[is].nb] = beam->generation[ip];
-        screen_defn[is].particleID[screen_defn[is].nb] = beam->particleID[ip];
-        screen_defn[is].nb += 1;
+        #pragma omp critical
+        {
+          screen_defn[is].buffer[0][screen_defn[is].nb] = r0 + vr * dtp;
+          screen_defn[is].buffer[1][screen_defn[is].nb] = pz0 + (pz - pz0) / dt * dtp;
+          screen_defn[is].buffer[2][screen_defn[is].nb] = pr0 + (pr - pr0) / dt * dtp;
+          screen_defn[is].buffer[3][screen_defn[is].nb] = pphi0 + (pphi - pphi0) / dt * dtp;
+          screen_defn[is].buffer[4][screen_defn[is].nb] = (EM_problem->time - dt + dtp);
+          screen_defn[is].buffer[5][screen_defn[is].nb] = beam->Q[ip];
+          screen_defn[is].buffer[6][screen_defn[is].nb] = beam->r0[ip];
+          screen_defn[is].buffer[7][screen_defn[is].nb] = beam->t0[ip];
+          screen_defn[is].rmin[screen_defn[is].nb] = beam->rmin[ip];
+          screen_defn[is].rmax[screen_defn[is].nb] = beam->rmax[ip];
+          screen_defn[is].zmin[screen_defn[is].nb] = beam->zmin[ip];
+          screen_defn[is].zmax[screen_defn[is].nb] = beam->zmax[ip];
+          screen_defn[is].generation[screen_defn[is].nb] = beam->generation[ip];
+          screen_defn[is].particleID[screen_defn[is].nb] = beam->particleID[ip];
+          screen_defn[is].nb += 1;
+        }
       }
       else if (screen_defn[is].z_position >= z && screen_defn[is].z_position < z0 && screen_defn[is].direction == -1)
       {
@@ -384,42 +384,26 @@ void advance_particles(
                   screen_defn[is].filename);
           fprintf(stderr, "The data for this particle is unreliable--consider moving the screen to z+dz.\n");
         }
-        if (screen_defn[is].nb >= screen_defn[is].max_nb)
-        {
-          screen_defn[is].max_nb += 10;
-          for (i = 0; i < N_SCREEN_QUANS; i++)
-            screen_defn[is].buffer[i] =
-                trealloc(screen_defn[is].buffer[i], sizeof(*screen_defn[is].buffer[i]) * screen_defn[is].max_nb);
-          screen_defn[is].generation =
-              trealloc(screen_defn[is].generation, sizeof(*screen_defn[is].generation) * screen_defn[is].max_nb);
-          screen_defn[is].particleID =
-              trealloc(screen_defn[is].particleID, sizeof(*screen_defn[is].particleID) * screen_defn[is].max_nb);
-          screen_defn[is].rmin =
-              trealloc(screen_defn[is].rmin, sizeof(*screen_defn[is].rmin) * screen_defn[is].max_nb);
-          screen_defn[is].rmax =
-              trealloc(screen_defn[is].rmax, sizeof(*screen_defn[is].rmax) * screen_defn[is].max_nb);
-          screen_defn[is].zmin =
-              trealloc(screen_defn[is].zmin, sizeof(*screen_defn[is].zmin) * screen_defn[is].max_nb);
-          screen_defn[is].zmax =
-              trealloc(screen_defn[is].zmax, sizeof(*screen_defn[is].zmax) * screen_defn[is].max_nb);
-        }
         dtp = (screen_defn[is].z_position - z0) / vz;
         r0 += vr * dtp;
-        screen_defn[is].buffer[0][screen_defn[is].nb] = r0;
-        screen_defn[is].buffer[1][screen_defn[is].nb] = pz;
-        screen_defn[is].buffer[2][screen_defn[is].nb] = pr;
-        screen_defn[is].buffer[3][screen_defn[is].nb] = r0 ? r_pphi / r0 : 0;
-        screen_defn[is].buffer[4][screen_defn[is].nb] = (EM_problem->time - dt + dtp);
-        screen_defn[is].buffer[5][screen_defn[is].nb] = beam->Q[ip];
-        screen_defn[is].buffer[6][screen_defn[is].nb] = beam->r0[ip];
-        screen_defn[is].buffer[7][screen_defn[is].nb] = beam->t0[ip];
-        screen_defn[is].generation[screen_defn[is].nb] = beam->generation[ip];
-        screen_defn[is].particleID[screen_defn[is].nb] = beam->particleID[ip];
-        screen_defn[is].rmin[screen_defn[is].nb] = beam->rmin[ip];
-        screen_defn[is].rmax[screen_defn[is].nb] = beam->rmax[ip];
-        screen_defn[is].zmin[screen_defn[is].nb] = beam->zmin[ip];
-        screen_defn[is].zmax[screen_defn[is].nb] = beam->zmax[ip];
-        screen_defn[is].nb += 1;
+        #pragma omp critical
+        {
+          screen_defn[is].buffer[0][screen_defn[is].nb] = r0;
+          screen_defn[is].buffer[1][screen_defn[is].nb] = pz;
+          screen_defn[is].buffer[2][screen_defn[is].nb] = pr;
+          screen_defn[is].buffer[3][screen_defn[is].nb] = r0 ? r_pphi / r0 : 0;
+          screen_defn[is].buffer[4][screen_defn[is].nb] = (EM_problem->time - dt + dtp);
+          screen_defn[is].buffer[5][screen_defn[is].nb] = beam->Q[ip];
+          screen_defn[is].buffer[6][screen_defn[is].nb] = beam->r0[ip];
+          screen_defn[is].buffer[7][screen_defn[is].nb] = beam->t0[ip];
+          screen_defn[is].generation[screen_defn[is].nb] = beam->generation[ip];
+          screen_defn[is].particleID[screen_defn[is].nb] = beam->particleID[ip];
+          screen_defn[is].rmin[screen_defn[is].nb] = beam->rmin[ip];
+          screen_defn[is].rmax[screen_defn[is].nb] = beam->rmax[ip];
+          screen_defn[is].zmin[screen_defn[is].nb] = beam->zmin[ip];
+          screen_defn[is].zmax[screen_defn[is].nb] = beam->zmax[ip];
+          screen_defn[is].nb += 1;
+        }
       }
     }
 
@@ -433,7 +417,14 @@ void advance_particles(
       beam->status[ip] &= ~PART_ACTIVE;
       beam->status[ip] |= PART_LOST;
     }
+    rr[ip] = r;
+    zz[ip] = z;
   }
+
+  for (ip = 0; ip < beam->np; ip++)
+  {
+  }
+
 
   /* now, write out lost particles */
   for (ip = 0; ip < beam->np; ip++)
@@ -446,7 +437,7 @@ void advance_particles(
       if (beam->r[ip])
         p += sqr(beam->r_pphi[ip] / beam->r[ip]);
       p = sqrt(p);
-      findLossCoordinates(&zLost, &rLost, &directionCode, z0Save, r0Save, z, r * (r_was_negative ? -1 : 1), EM_problem);
+      findLossCoordinates(&zLost, &rLost, &directionCode, z0Save[ip], r0Save[ip], zz[ip], rr[ip] * (r_was_negative[ip] ? -1 : 1), EM_problem);
       if (nSecondaryDefns)
         queueSecondaryEmission(secondaryEmission, nSecondaryDefns, p,
                                zLost, rLost, directionCode, beam->Q[ip],

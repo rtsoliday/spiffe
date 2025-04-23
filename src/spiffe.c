@@ -21,6 +21,9 @@
 #ifdef SUNOS4
 #  include <malloc.h>
 #endif
+#if defined(_OPENMP)
+#  include <omp.h>
+#endif
 
 #define DEFINE_GEOMETRY 0
 #define DEFINE_ANTENNA 1
@@ -72,7 +75,7 @@ char *command[N_COMMANDS] = {
   "define_emitter",
 };
 
-char *USAGE = "spiffe inputfile\nProgram by M. Borland (This is version 4.10.0, "__DATE__")";
+char *USAGE = "spiffe [-threads=<number>] inputfile\nProgram by M. Borland (This is version 4.10.0, "__DATE__")";
 
 #if defined(CONDOR_COMPILE)
 void init_image_with_file_name(char *ckpt_file_name);
@@ -90,6 +93,9 @@ int main(
          int argc,
          char **argv)
 {
+  int ii, j, num_threads = 1;
+    
+
   FIELDS EM_problem;        /* the electromagnetic portion of a problem */
   long n_antennae;          /* number of antennae */
   ANTENNA *antenna;         /* pointer to antenna definitions */
@@ -115,6 +121,23 @@ int main(
   NAMELIST_TEXT namelist_text;
   long i;
 
+    // Process -threads option
+    for (ii = 1; ii < argc; ii++) {
+      if (strncmp(argv[ii], "-threads=", 9) == 0) {
+        num_threads = atoi(argv[ii] + 9);
+        // remove this argument
+        for (j = ii; j < argc - 1; j++)
+          argv[j] = argv[j + 1];
+        argc--;
+        break;
+      }
+    }
+    if (num_threads > 0) {
+  #ifdef _OPENMP
+      omp_set_num_threads(num_threads);
+  #endif
+    }
+  
   if (!SDDS_CheckTableStructureSize(sizeof(SDDS_TABLE)))
     {
       fprintf(stderr, "table structure size is inconsistent\n");
@@ -143,10 +166,6 @@ int main(
 
   fprintf(stdout, "Running spiffe\n");
   link_date();
-
-#if defined(VAX_VMS) || defined(SUNOS4)
-  init_stats();
-#endif
 
   fp_in = fopen_e(inputfile, "r", 0);
 
@@ -249,9 +268,6 @@ int main(
           setup_poisson_correction(&EM_problem, &namelist_text);
           break;
         case STOP:
-#if defined(VAX_VMS) || defined(SUNOS4)
-          report_stats(stdout, "run-time statistics: ");
-#endif
           exit(1);
           break;
         case SPACE_CHARGE:
@@ -331,9 +347,6 @@ int main(
   if (cathode)
     free(cathode);
   puts("end of input reached");
-#if defined(VAX_VMS) || defined(SUNOS4)
-  report_stats(stdout, "run-time statistics: ");
-#endif
   return (0);
 }
 

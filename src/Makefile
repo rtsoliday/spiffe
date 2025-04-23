@@ -23,7 +23,7 @@ endif
 CFLAGS += -I$(SDDS_REPO)/include -I$(OBJ_DIR) -DSVN_VERSION=\"$(SVN_VERSION)\"
 
 ifeq ($(OS), Linux)
-  CFLAGS += -Wno-unused-variable
+  CFLAGS += -Wno-unused-variable -fopenmp
   LDFLAGS := -L$(SDDS_REPO)/lib/$(OS)-$(ARCH) -fopenmp $(LDFLAGS)
   PROD_SYS_LIBS := $(LZMA_LIB) $(GSL_LIB) $(GSLCBLAS_LIB) $(Z_LIB) $(PROD_SYS_LIBS)
   PROD_LIBS_SDDS = -lmdbcommon -lmatlib -lSDDS1 -lnamelist -lrpnlib -lmdbmth -lmdblib
@@ -37,7 +37,7 @@ ifeq ($(OS), Darwin)
 endif
 
 ifeq ($(OS), Windows)
-  CFLAGS += -I$(SDDS_REPO)/lzma -wd4244
+  CFLAGS += -I$(SDDS_REPO)/lzma -wd4244 -openmp
   PROD_LIBS += gsl.lib gslcblas.lib
   PROD_LIBS_SDDS = mdbcommon.lib matlib.lib SDDS1.lib namelist.lib rpnlib.lib mdbmth.lib mdblib.lib lzma.lib z.lib
   LIB_LINK_DIRS += -LIBPATH:$(SDDS_REPO)/lib/$(OS)-$(ARCH)
