@@ -14,9 +14,9 @@ output of the average value along the line vs time.
 \item {\bf example:} 
 \begin{verbatim}
 &define_field_sampling
-    filename = "gunRun.Ez_t,
+    filename = "gunRun.Ez_t",
     component = "Ez",
-    time_sequence = 1
+    time_sequence = 1,
     direction = "z",
     min_coord = 0, max_coord = 0.01,
     position = 0,
@@ -24,8 +24,8 @@ output of the average value along the line vs time.
     start_time = 0,
 &end
 \end{verbatim}
-Requests logging of $E_z$ as a function of time, with samples made a
-10ps simulated time intervals starting with the start of the
+Requests logging of $E_z$ as a function of time, with samples made at
+10~ps simulated time intervals starting with the start of the
 simulation.  The data output is the average of $E_z$ along a
 line from $z=0$ to $z=1$cm.
 

@@ -47,8 +47,8 @@ version 2.3, multiple cathodes may be defined.
     long distribution_correction_interval = 0;
     long spread_over_dt = 0;
     long zoned_emission = 1;
-    long halton_radix_dt = 0;
-    long halton_radix_r = 0;
+    int32_t halton_radix_dt = 0;
+    int32_t halton_radix_r = 0;
     STRING profile = NULL;
     STRING profile_time_name = NULL;
     STRING profile_factor_name = NULL;
@@ -122,7 +122,7 @@ version 2.3, multiple cathodes may be defined.
     \item {\tt zoned\_emission}: Flag requesting that emission calculations take place separately
         for each annular zone of width $\Delta r$ (the radial grid spacing).  Reduces the possibility
         that random number effects will result in a nonuniform current density.
-    \item {\tt halton\_radix\_t}: Halton radix (a small prime number) to be used for quiet-start
+    \item {\tt halton\_radix\_dt}: Halton radix (a small prime number) to be used for quiet-start
       generation of time values.
     \item {\tt halton\_radix\_r}: Halton radix (a small prime number) to be used for quiet-start
       generation of radius values.

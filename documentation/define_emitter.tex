@@ -92,10 +92,12 @@ constant z.
     \item {\tt spread\_over\_dt}: Flag requesting that emitted particles have their effective 
         emission times spread out over the simulation time step, $\Delta t$.  The particle velocities
         are adjusted appropriately using the instantaneous $E_z$ and $E_r$ fields {\em only}.
-    \item {\tt halton\_radix\_t}: Halton radix (a small prime number) to be used for quiet-start
+    \item {\tt halton\_radix\_dt}: Halton radix (a small prime number) to be used for quiet-start
       generation of time values.
     \item {\tt halton\_radix\_r}: Halton radix (a small prime number) to be used for quiet-start
       generation of radius values.
+    \item {\tt halton\_radix\_z}: Halton radix (a small prime number) to be used for quiet-start
+      generation of longitudinal values.
     \item {\tt profile}: The name of an SDDS-protocol file containing a time-profile with which
         to modulate the base current density. 
     \item {\tt profile\_factor\_name, profile\_time\_name}: The columns giving the current-density
