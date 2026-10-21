@@ -76,17 +76,17 @@ void advance_particles(
     long nSecondaryDefns)
 {
   double *z0Save, *r0Save, *z0, *vzz, *pphi_a, *vr_a;
-  double pz0 = 0, pr0 = 0, r_pphi0 = 0;
+  double *pz0Save, *pr0Save, *rpphi0Save;
   long ip, is, ib, i;
   short *is_lost, *r_was_negative;
   double zmin, dz, dr, zmax, rmax;
-  double Ez, Er, Bphi, Ephi, Br, Bz, dt;
+  double dt;
   double z_tb1 = 0, r_tb1 = 0;
   long maxLost, newLost = 0;
   double max_r, ave_z, ave_vz;
+  double ezOOEMin, ezOOEMax;
   long newActiveCount = 0;
   short directionCode;
-  static short allocateMemory = 1;
 #if defined(DEBUG)
   long izNew, irNew;
 #endif
@@ -110,8 +110,8 @@ void advance_particles(
 
   max_r = 0;
   ave_z = ave_vz = 0;
-  EM_problem->EzOOEMin = HUGE;
-  EM_problem->EzOOEMax = -HUGE;
+  ezOOEMin = HUGE;
+  ezOOEMax = -HUGE;
 
   is_lost = (short *)malloc(sizeof(*is_lost) * beam->max_np);
   r_was_negative = (short *)malloc(sizeof(*r_was_negative) * beam->max_np);
@@ -121,6 +121,9 @@ void advance_particles(
   vzz = (double *)malloc(sizeof(*vzz) * beam->max_np);
   pphi_a = (double *)malloc(sizeof(*pphi_a) * beam->max_np);
   vr_a = (double *)malloc(sizeof(*vr_a) * beam->max_np);
+  pz0Save = (double *)malloc(sizeof(*pz0Save) * beam->max_np);
+  pr0Save = (double *)malloc(sizeof(*pr0Save) * beam->max_np);
+  rpphi0Save = (double *)malloc(sizeof(*rpphi0Save) * beam->max_np);
 
 #if DEBUG
   fprintf(stdout, "%ld particles, %ld active particles\n",
@@ -128,9 +131,10 @@ void advance_particles(
   fflush(stdout);
 #endif
 
-#pragma omp parallel for reduction(+: newActiveCount) reduction(max: max_r) reduction(+: ave_z, ave_vz)
+#pragma omp parallel for num_threads(spiffeThreads) reduction(+: newActiveCount) reduction(max: max_r) reduction(+: ave_z, ave_vz) reduction(min: ezOOEMin) reduction(max: ezOOEMax)
   for (ip = 0; ip < beam->np; ip++)
   {
+    double Ez, Er, Bphi, Ephi, Br, Bz;
     double z, r, vz = 0, vr = 0, pz = 0, pr = 0, r_pphi = 0, vphi = 0, gamma, pphi, adjustFactor=1;
     long iz, ir;
     short lossCode;
@@ -199,9 +203,9 @@ void advance_particles(
         }
       }
     }
-    pz = pz0 = beam->pz[ip];
-    pr = pr0 = beam->pr[ip];
-    r_pphi = r_pphi0 = beam->r_pphi[ip];
+    pz = pz0Save[ip] = beam->pz[ip];
+    pr = pr0Save[ip] = beam->pr[ip];
+    r_pphi = rpphi0Save[ip] = beam->r_pphi[ip];
     vphi = beam->vphi[ip];
     if (r > max_r)
       max_r = r;
@@ -269,7 +273,8 @@ void advance_particles(
     {
       if (beam->status[ip] & PART_ACTIVE)
       {
-        interpolateFields(&Ez, &Er, &Ephi, &Bz, &Br, &Bphi, z, r, EM_problem);
+        /* ezOOEMin/ezOOEMax are reduction variables, so these are each thread's private copies */
+        interpolateFields(&Ez, &Er, &Ephi, &Bz, &Br, &Bphi, &ezOOEMin, &ezOOEMax, z, r, EM_problem);
       }
       else
       {
@@ -340,30 +345,36 @@ void advance_particles(
 
   /* update global active count from per-thread accumulation */
   beam->npActive += newActiveCount;
+  EM_problem->EzOOEMin = ezOOEMin;
+  EM_problem->EzOOEMax = ezOOEMax;
 
-  /* Pre-allocate screen buffers to avoid memory allocation locks during OpenMP parallel loops */
+  /* Pre-allocate screen buffers to avoid memory allocation locks during OpenMP parallel loops.
+   * beam->max_np grows as the cathode and emitters inject particles, so the buffers must be
+   * grown to match; max_nb must always equal the true allocated capacity.
+   */
   for (is = 0; is < n_screens; is++)
   {
     screen_defn[is].nb = 0;
-    screen_defn[is].max_nb = beam->max_np;
-    if (allocateMemory) {
+    if (beam->max_np > screen_defn[is].max_nb)
+    {
+      screen_defn[is].max_nb = beam->max_np;
       for (i = 0; i < N_SCREEN_QUANS; i++)
-        screen_defn[is].buffer[i] = malloc(sizeof(*screen_defn[is].buffer[i]) * screen_defn[is].max_nb);
-      screen_defn[is].generation = malloc(sizeof(*screen_defn[is].generation) * screen_defn[is].max_nb);
-      screen_defn[is].particleID = malloc(sizeof(*screen_defn[is].particleID) * screen_defn[is].max_nb);
-      screen_defn[is].rmin = malloc(sizeof(*screen_defn[is].rmin) * screen_defn[is].max_nb);
-      screen_defn[is].rmax = malloc(sizeof(*screen_defn[is].rmax) * screen_defn[is].max_nb);
-      screen_defn[is].zmin = malloc(sizeof(*screen_defn[is].zmin) * screen_defn[is].max_nb);
-      screen_defn[is].zmax = malloc(sizeof(*screen_defn[is].zmax) * screen_defn[is].max_nb);
-      allocateMemory = 0;
+        screen_defn[is].buffer[i] = trealloc(screen_defn[is].buffer[i], sizeof(*screen_defn[is].buffer[i]) * screen_defn[is].max_nb);
+      screen_defn[is].generation = trealloc(screen_defn[is].generation, sizeof(*screen_defn[is].generation) * screen_defn[is].max_nb);
+      screen_defn[is].particleID = trealloc(screen_defn[is].particleID, sizeof(*screen_defn[is].particleID) * screen_defn[is].max_nb);
+      screen_defn[is].rmin = trealloc(screen_defn[is].rmin, sizeof(*screen_defn[is].rmin) * screen_defn[is].max_nb);
+      screen_defn[is].rmax = trealloc(screen_defn[is].rmax, sizeof(*screen_defn[is].rmax) * screen_defn[is].max_nb);
+      screen_defn[is].zmin = trealloc(screen_defn[is].zmin, sizeof(*screen_defn[is].zmin) * screen_defn[is].max_nb);
+      screen_defn[is].zmax = trealloc(screen_defn[is].zmax, sizeof(*screen_defn[is].zmax) * screen_defn[is].max_nb);
     }
   }
 
   /* now, record particles on screens */
-  #pragma omp parallel for
+  #pragma omp parallel for num_threads(spiffeThreads)
   for (ip = 0; ip < beam->np; ip++)
   {
     double dtp, r0, pphi0 = 0;
+    long is, ibuf;
     r0 = r0Save[ip];
     for (is = 0; is < n_screens; is++)
     {
@@ -377,23 +388,24 @@ void advance_particles(
         }
         dtp = (screen_defn[is].z_position - z0[ip]) / vzz[ip];
         pphi_a[ip] = beam->r[ip] ? beam->r_pphi[ip] / beam->r[ip] : 0;
-        pphi0 = r0 ? r_pphi0 / r0 : 0;
+        pphi0 = r0 ? rpphi0Save[ip] / r0 : 0;
         {
-          screen_defn[is].buffer[0][screen_defn[is].nb] = r0 + vr_a[ip] * dtp;
-          screen_defn[is].buffer[1][screen_defn[is].nb] = pz0 + (beam->pz[ip] - pz0) / dt * dtp;
-          screen_defn[is].buffer[2][screen_defn[is].nb] = pr0 + (beam->pr[ip] - pr0) / dt * dtp;
-          screen_defn[is].buffer[3][screen_defn[is].nb] = pphi0 + (pphi_a[ip] - pphi0) / dt * dtp;
-          screen_defn[is].buffer[4][screen_defn[is].nb] = (EM_problem->time - dt + dtp);
-          screen_defn[is].buffer[5][screen_defn[is].nb] = beam->Q[ip];
-          screen_defn[is].buffer[6][screen_defn[is].nb] = beam->r0[ip];
-          screen_defn[is].buffer[7][screen_defn[is].nb] = beam->t0[ip];
-          screen_defn[is].rmin[screen_defn[is].nb] = beam->rmin[ip];
-          screen_defn[is].rmax[screen_defn[is].nb] = beam->rmax[ip];
-          screen_defn[is].zmin[screen_defn[is].nb] = beam->zmin[ip];
-          screen_defn[is].zmax[screen_defn[is].nb] = beam->zmax[ip];
-          screen_defn[is].generation[screen_defn[is].nb] = beam->generation[ip];
-          screen_defn[is].particleID[screen_defn[is].nb] = beam->particleID[ip];
-          screen_defn[is].nb += 1;
+#pragma omp atomic capture
+          ibuf = screen_defn[is].nb++;
+          screen_defn[is].buffer[0][ibuf] = r0 + vr_a[ip] * dtp;
+          screen_defn[is].buffer[1][ibuf] = pz0Save[ip] + (beam->pz[ip] - pz0Save[ip]) / dt * dtp;
+          screen_defn[is].buffer[2][ibuf] = pr0Save[ip] + (beam->pr[ip] - pr0Save[ip]) / dt * dtp;
+          screen_defn[is].buffer[3][ibuf] = pphi0 + (pphi_a[ip] - pphi0) / dt * dtp;
+          screen_defn[is].buffer[4][ibuf] = (EM_problem->time - dt + dtp);
+          screen_defn[is].buffer[5][ibuf] = beam->Q[ip];
+          screen_defn[is].buffer[6][ibuf] = beam->r0[ip];
+          screen_defn[is].buffer[7][ibuf] = beam->t0[ip];
+          screen_defn[is].rmin[ibuf] = beam->rmin[ip];
+          screen_defn[is].rmax[ibuf] = beam->rmax[ip];
+          screen_defn[is].zmin[ibuf] = beam->zmin[ip];
+          screen_defn[is].zmax[ibuf] = beam->zmax[ip];
+          screen_defn[is].generation[ibuf] = beam->generation[ip];
+          screen_defn[is].particleID[ibuf] = beam->particleID[ip];
         }
       }
       else if (screen_defn[is].z_position >= beam->z[ip] && screen_defn[is].z_position < z0[ip] && screen_defn[is].direction == -1)
@@ -407,21 +419,22 @@ void advance_particles(
         dtp = (screen_defn[is].z_position - z0[ip]) / vzz[ip];
         r0 += vr_a[ip] * dtp;
         {
-          screen_defn[is].buffer[0][screen_defn[is].nb] = r0;
-          screen_defn[is].buffer[1][screen_defn[is].nb] = beam->pz[ip];
-          screen_defn[is].buffer[2][screen_defn[is].nb] = beam->pr[ip];
-          screen_defn[is].buffer[3][screen_defn[is].nb] = r0 ? beam->r_pphi[ip] / r0 : 0;
-          screen_defn[is].buffer[4][screen_defn[is].nb] = (EM_problem->time - dt + dtp);
-          screen_defn[is].buffer[5][screen_defn[is].nb] = beam->Q[ip];
-          screen_defn[is].buffer[6][screen_defn[is].nb] = beam->r0[ip];
-          screen_defn[is].buffer[7][screen_defn[is].nb] = beam->t0[ip];
-          screen_defn[is].generation[screen_defn[is].nb] = beam->generation[ip];
-          screen_defn[is].particleID[screen_defn[is].nb] = beam->particleID[ip];
-          screen_defn[is].rmin[screen_defn[is].nb] = beam->rmin[ip];
-          screen_defn[is].rmax[screen_defn[is].nb] = beam->rmax[ip];
-          screen_defn[is].zmin[screen_defn[is].nb] = beam->zmin[ip];
-          screen_defn[is].zmax[screen_defn[is].nb] = beam->zmax[ip];
-          screen_defn[is].nb += 1;
+#pragma omp atomic capture
+          ibuf = screen_defn[is].nb++;
+          screen_defn[is].buffer[0][ibuf] = r0;
+          screen_defn[is].buffer[1][ibuf] = beam->pz[ip];
+          screen_defn[is].buffer[2][ibuf] = beam->pr[ip];
+          screen_defn[is].buffer[3][ibuf] = r0 ? beam->r_pphi[ip] / r0 : 0;
+          screen_defn[is].buffer[4][ibuf] = (EM_problem->time - dt + dtp);
+          screen_defn[is].buffer[5][ibuf] = beam->Q[ip];
+          screen_defn[is].buffer[6][ibuf] = beam->r0[ip];
+          screen_defn[is].buffer[7][ibuf] = beam->t0[ip];
+          screen_defn[is].generation[ibuf] = beam->generation[ip];
+          screen_defn[is].particleID[ibuf] = beam->particleID[ip];
+          screen_defn[is].rmin[ibuf] = beam->rmin[ip];
+          screen_defn[is].rmax[ibuf] = beam->rmax[ip];
+          screen_defn[is].zmin[ibuf] = beam->zmin[ip];
+          screen_defn[is].zmax[ibuf] = beam->zmax[ip];
         }
       }
     }
@@ -513,6 +526,10 @@ void advance_particles(
       beam->generation[ip] = beam->generation[beam->np];
       beam->particleID[ip] = beam->particleID[beam->np];
       beam->status[ip] = beam->status[beam->np];
+      /* the swapped-in particle carries its own loss flag; without this the stale
+       * flag at ip is re-read after ip-- and the whole tail of the beam is deleted
+       */
+      is_lost[ip] = is_lost[beam->np];
       ip--;
     }
   }
@@ -525,6 +542,9 @@ void advance_particles(
   free(vzz);
   free(pphi_a);
   free(vr_a);
+  free(pz0Save);
+  free(pr0Save);
+  free(rpphi0Save);
 
   if (newLost)
   {
@@ -621,6 +641,7 @@ void setParticleVelocities(double *vz, double *vr, double *vphi, double *gamma,
 
 void interpolateFields(double *EzReturn, double *ErReturn, double *EphiReturn,
                        double *BzReturn, double *BrReturn, double *BphiReturn,
+                       double *EzOOEMin, double *EzOOEMax,
                        double z, double r, FIELDS *EM_problem)
 {
   long iz, ir, nz, nr, iz1, ir1;
@@ -836,7 +857,7 @@ void interpolateFields(double *EzReturn, double *ErReturn, double *EphiReturn,
   /* add fields from on-axis field profiles */
   EzOOE = ErOOE = BphiOOE = 0;
   addOffAxisExpansionFields(&EzOOE, &ErOOE, &BphiOOE,
-                            &EM_problem->EzOOEMin, &EM_problem->EzOOEMax, z, r,
+                            EzOOEMin, EzOOEMax, z, r,
                             EM_problem->time,
                             EM_problem->onAxisField, EM_problem->onAxisFields, 0);
   Ez += EzOOE;
