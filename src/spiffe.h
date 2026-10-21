@@ -425,6 +425,16 @@ typedef struct {
 extern char *compose_filename(char *template, char *root_name);
 extern void check_heap(void);
 
+/* prototypes for rpnCommands.c */
+void run_rpn_expression(NAMELIST_TEXT *nl_text);
+void run_rpn_load(NAMELIST_TEXT *nl_text, FIELDS *EM_problem);
+void doMacroOutput(NAMELIST_TEXT *nl_text, FIELDS *EM_problem, char **macroTag, char **macroValue, long macros);
+
+/* prototypes for semaphores.c */
+void process_semaphores(NAMELIST_TEXT *nl_text, FIELDS *EM_problem);
+void createSemaphoreFile(char *filename);
+void createDoneSemaphoreFile(void);
+
 /* prototypes for geometry.c */
 void process_geometry_definition(FIELDS *EM_problem, NAMELIST_TEXT *nl_text);
 
@@ -435,6 +445,12 @@ void starting_point(double x, double y, double potential, short material);
 void draw_line(double xi, double yi, double xf, double yf, double potential, short material, double startPotential);
 void draw_circle(double xi, double yi, double xc, double yc, double r, double thetaf, double *xf, double *yf, double potential, short material);
 void draw_ellipse(double xi, double yi, double xc, double yc, double a, double b, double thetaf, double *xf, double *yf, double potential, short material);
+/* Thread count requested with -threads. Used in explicit num_threads() clauses because
+ * library routines (e.g. computeMoments in mdbmth) call omp_set_num_threads(1), which would
+ * otherwise silently disable all parallelism for the rest of the run.
+ */
+extern int spiffeThreads;
+
 void add_point(double x, double y, double potential, short material);
 void add_breakpoint(double x, double y, double potential, short material);
 void dump_boundary_points(char *filename, char *rootname);
@@ -530,6 +546,7 @@ void setParticleVelocities(double *vz, double *vr, double *vphi, double *gamma,
                            double pz, double pr, double r_pphi, double r);
 void interpolateFields(double *EzReturn, double *ErReturn, double *EphiReturn,
                        double *BzReturn, double *BrReturn, double *BphiReturn,
+                       double *EzOOEMin, double *EzOOEMax,
                        double z, double r,
                        FIELDS *EM_problem);
 
