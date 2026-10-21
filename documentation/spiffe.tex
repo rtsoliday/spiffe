@@ -36,6 +36,24 @@ algorithms used by {\tt spiffe} should consult reference \cite{spiffeEqn}.
 \begin{enumerate}
 \item Added the \verb|auto_max_dt| option to use the maximum stable time step when
   \verb|dt_integration| is too large.
+\item Added the \verb|-macro=<tag>=<value>[,<tag>=<value>...]| commandline option, which works
+  as in {\tt elegant}.  Occurrences of \verb|<tag>| or \verb|$tag| in the input file are replaced
+  with the given value before each namelist is parsed.  The option may be given more than once.
+  The tag \verb|INPUTFILENAME| is predefined as the name of the input file.
+\item Numerical namelist values may now be given as rpn expressions using the
+  \verb|(rpn-sequence)| syntax, as in {\tt elegant}.  For example,
+  \verb|finish_time = "(300e-12 2 /)"|.  Note that an expression containing spaces must be
+  enclosed in double quotation marks, since the namelist scanner otherwise breaks the
+  value at the spaces.
+\item Added the \verb|rpn_expression| command, which executes an arbitrary rpn expression,
+  typically to define memories for use in \verb|(rpn-sequence)| values.
+\item Added the \verb|rpn_load| command, which loads numerical data from an SDDS file into
+  rpn memories, allowing a run to be driven by the results of a previous computation.
+\item Added the \verb|macro_output| command, which writes the \verb|-macro| definitions in
+  effect for the run to an SDDS file.
+\item Added the \verb|-rpnDefns=<filename>| commandline option, which specifies the rpn
+  definitions file to load.  If not given, the \verb|RPN_DEFNS| environment variable is
+  used.  Unlike {\tt elegant}, {\tt spiffe} does not require either to be present.
 \end{enumerate}
 
 \subsection{Version 4.9.0}
@@ -216,8 +234,26 @@ quotation marks.  Values for \verb|double| variables may be in
 floating-point, exponential, or integer format (exponential format
 uses the `e' character to introduce the exponent).
 
+Values for \verb|long| and \verb|double| variables may also be given as rpn
+expressions enclosed in parentheses, as in {\tt elegant}.  For example,
+\begin{verbatim}
+&integrate
+    dt_integration = "(1e-12 2 /)",
+    finish_time = (tStop),
+&end
+\end{verbatim}
+An expression that contains spaces must additionally be enclosed in double
+quotation marks, as shown, because the namelist scanner otherwise breaks the
+value at the spaces.  Memories referenced by such expressions may be defined
+with the \verb|rpn_expression| and \verb|rpn_load| commands, or in the rpn
+definitions file named by the \verb|-rpnDefns| commandline option or the
+\verb|RPN_DEFNS| environment variable.
+
 \input{define_geometry.tex}
 \input{geometryFile.tex}
+\input{rpn_expression.tex}
+\input{rpn_load.tex}
+\input{macro_output.tex}
 \input{define_antenna.tex}
 \input{load_fields.tex}
 \input{constant_fields.tex}
