@@ -218,6 +218,7 @@ void sample_fields(
                         {
                           interpolateFields(&fieldValue[0], &fieldValue[1], &fieldValue[2],
                                             &fieldValue[3], &fieldValue[4], &fieldValue[5],
+                                            &EM_problem->EzOOEMin, &EM_problem->EzOOEMax,
                                             EM_problem->zmin + iz * EM_problem->dz,
                                             ir * EM_problem->dr,
                                             EM_problem);
@@ -317,6 +318,7 @@ void sample_fields(
                         {
                           interpolateFields(&fieldValue[0], &fieldValue[1], &fieldValue[2],
                                             &fieldValue[3], &fieldValue[4], &fieldValue[5],
+                                            &EM_problem->EzOOEMin, &EM_problem->EzOOEMax,
                                             EM_problem->zmin + iz * EM_problem->dz,
                                             ir * EM_problem->dr,
                                             EM_problem);
@@ -760,6 +762,7 @@ void sample_fields(
                         {
                           interpolateFields(&fieldValue[0], &fieldValue[1], &fieldValue[2],
                                             &fieldValue[3], &fieldValue[4], &fieldValue[5],
+                                            &EM_problem->EzOOEMin, &EM_problem->EzOOEMax,
                                             EM_problem->zmin + iz * EM_problem->dz,
                                             ir * EM_problem->dr,
                                             EM_problem);
@@ -802,6 +805,7 @@ void sample_fields(
                         {
                           interpolateFields(&fieldValue[0], &fieldValue[1], &fieldValue[2],
                                             &fieldValue[3], &fieldValue[4], &fieldValue[5],
+                                            &EM_problem->EzOOEMin, &EM_problem->EzOOEMax,
                                             EM_problem->zmin + iz * EM_problem->dz,
                                             ir * EM_problem->dr,
                                             EM_problem);
