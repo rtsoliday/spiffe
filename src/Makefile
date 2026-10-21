@@ -12,7 +12,8 @@ spiffe_SRC = advance_particles.c antenna.c cathode.c constant_fields.c \
 		grid_drawing.c integrate.c load_fields.c load_particles.c \
 		poisson.c poisson_correction.c resistor.c screens.c snapshots.c \
 		test_beam.c translate.c space_charge.c spiffe.c status_pr.c \
-		Bsolenoid.c solenoid.c onAxisFields.c secondaryEmission.c emitter.c
+		Bsolenoid.c solenoid.c onAxisFields.c secondaryEmission.c emitter.c \
+		rpnCommands.c semaphores.c
 
 ifneq ($(wildcard $(DD)../.svn $(DD)../../../../.svn),)
   SVN_VERSION=$(shell svnversion .)
@@ -161,4 +162,14 @@ $(OBJ_DIR)/emitter.$(OBJEXT): emitter.c $(OBJ_DIR)/emitter.h
 
 $(OBJ_DIR)/emitter.h: emitter.nl
 	$(SDDS_REPO)/bin/$(OS)-$(ARCH)/nlpp -suppressSummaryVariables emitter.nl $(OBJ_DIR)/emitter.h
+
+$(OBJ_DIR)/rpnCommands.$(OBJEXT): rpnCommands.c $(OBJ_DIR)/rpnCommands.h
+
+$(OBJ_DIR)/rpnCommands.h: rpnCommands.nl
+	$(SDDS_REPO)/bin/$(OS)-$(ARCH)/nlpp -suppressSummaryVariables rpnCommands.nl $(OBJ_DIR)/rpnCommands.h
+
+$(OBJ_DIR)/semaphores.$(OBJEXT): semaphores.c $(OBJ_DIR)/semaphores.h
+
+$(OBJ_DIR)/semaphores.h: semaphores.nl
+	$(SDDS_REPO)/bin/$(OS)-$(ARCH)/nlpp -suppressSummaryVariables semaphores.nl $(OBJ_DIR)/semaphores.h
 
