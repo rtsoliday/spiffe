@@ -14,6 +14,24 @@
  */
 #include "spiffe.h"
 #include "space_charge.h"
+#ifdef _OPENMP
+ #include <omp.h>
+#endif
+
+static double *JPartial = NULL;
+static long JPartialSize = 0;
+
+static double *getJPartialBuffer(long nThreads, long nCells)
+{
+  long size;
+  size = nThreads * nCells;
+  if (size > JPartialSize)
+    {
+      JPartial = trealloc(JPartial, sizeof(*JPartial) * size);
+      JPartialSize = size;
+    }
+  return JPartial;
+}
 
 void setup_space_charge(
                         FIELDS *EM_problem,
@@ -35,12 +53,12 @@ void add_particle_currents(
                            FIELDS *EM_problem,
                            BEAM *beam)
 {
-  long ip;
-  long iz, ir, nz, nr;
-  double fp, fm, Jm, Jp, dz, dr;
-  double Q_over_piDzDr2, zmin, one_over_piDzDr2;
+  long nz, nr;
+  double dz, dr;
+  double zmin, one_over_piDzDr2;
   /*double zmax, rmax;*/
-  double QVG;
+  long nThreads, nCells, nrStride;
+  double *JPart;
 
   nz = EM_problem->nz;
   nr = EM_problem->nr;
@@ -51,6 +69,15 @@ void add_particle_currents(
     rmax = EM_problem->rmax;*/
   one_over_piDzDr2 = 1 / (PI * dz * sqr(dr));
 
+  /* Each thread scatters into a private copy of the grid, which is summed into
+   * the real grid afterwards.  The copies have one extra row and column so that
+   * the fp==0 smearing writes at iz==nz or ir==nr stay in bounds.
+   */
+  nrStride = nr + 2;
+  nCells = (nz + 2) * nrStride;
+  nThreads = spiffeThreads < 1 ? 1 : spiffeThreads;
+  JPart = getJPartialBuffer(nThreads, nCells);
+
   if (EM_problem->modes & FL_TM_FIELDS)
     {
       if (!EM_problem->Jz)
@@ -58,6 +85,19 @@ void add_particle_currents(
       if (!EM_problem->Jr)
         bomb("Jr array is unexpectedly NULL in add_particle_currents", NULL);
       /* add Jz currents */
+#pragma omp parallel num_threads(nThreads)
+      {
+      long ip, iz, ir, it;
+      double fp, fm, Jm, Jp, Q_over_piDzDr2, QVG;
+      double *myJ;
+#ifdef _OPENMP
+      it = omp_get_thread_num();
+#else
+      it = 0;
+#endif
+      myJ = JPart + it * nCells;
+      memset(myJ, 0, sizeof(*myJ) * nCells);
+#pragma omp for schedule(static)
       for (ip = 0; ip < beam->np; ip++)
         {
           if (!(beam->status[ip] & PART_ACTIVE))
@@ -127,18 +167,44 @@ void add_particle_currents(
               fp = 0;
             }
           /* distribute current density to grid points */
-          EM_problem->Jz[iz][ir] += fm * Jm;
+          myJ[iz * nrStride + ir] += fm * Jm;
           if (EM_problem->modes & FL_LONGIT_SMEAR)
-            EM_problem->Jz[iz + 1][ir] += fp * Jm;
+            myJ[(iz + 1) * nrStride + ir] += fp * Jm;
           if (EM_problem->modes & FL_RADIAL_SMEAR)
             {
-              EM_problem->Jz[iz][ir + 1] += fm * Jp;
+              myJ[iz * nrStride + ir + 1] += fm * Jp;
               if (EM_problem->modes & FL_LONGIT_SMEAR)
-                EM_problem->Jz[iz + 1][ir + 1] += fp * Jp;
+                myJ[(iz + 1) * nrStride + ir + 1] += fp * Jp;
             }
         }
+      /* implicit barrier above: all scatters are complete */
+#pragma omp for schedule(static)
+      for (iz = 0; iz <= nz; iz++)
+        {
+          double *Jrow = EM_problem->Jz[iz];
+          for (it = 0; it < nThreads; it++)
+            {
+              double *prow = JPart + it * nCells + iz * nrStride;
+              for (ir = 0; ir <= nr; ir++)
+                Jrow[ir] += prow[ir];
+            }
+        }
+      }
 
       /* add Jr currents */
+#pragma omp parallel num_threads(nThreads)
+      {
+      long ip, iz, ir, it;
+      double fp, fm, Jm, Jp, Q_over_piDzDr2, QVG;
+      double *myJ;
+#ifdef _OPENMP
+      it = omp_get_thread_num();
+#else
+      it = 0;
+#endif
+      myJ = JPart + it * nCells;
+      memset(myJ, 0, sizeof(*myJ) * nCells);
+#pragma omp for schedule(static)
       for (ip = 0; ip < beam->np; ip++)
         {
           if (!(beam->status[ip] & PART_ACTIVE))
@@ -203,16 +269,29 @@ void add_particle_currents(
               fp = 0;
             }
           /* distribute current density to grid points */
-          EM_problem->Jr[iz][ir] += fm * Jm;
+          myJ[iz * nrStride + ir] += fm * Jm;
           if (EM_problem->modes & FL_LONGIT_SMEAR)
-            EM_problem->Jr[iz + 1][ir] += fp * Jm;
+            myJ[(iz + 1) * nrStride + ir] += fp * Jm;
           if (EM_problem->modes & FL_RADIAL_SMEAR)
             {
-              EM_problem->Jr[iz][ir + 1] += fm * Jp;
+              myJ[iz * nrStride + ir + 1] += fm * Jp;
               if (EM_problem->modes & FL_LONGIT_SMEAR)
-                EM_problem->Jr[iz + 1][ir + 1] += fp * Jp;
+                myJ[(iz + 1) * nrStride + ir + 1] += fp * Jp;
             }
         }
+      /* implicit barrier above: all scatters are complete */
+#pragma omp for schedule(static)
+      for (iz = 0; iz <= nz; iz++)
+        {
+          double *Jrow = EM_problem->Jr[iz];
+          for (it = 0; it < nThreads; it++)
+            {
+              double *prow = JPart + it * nCells + iz * nrStride;
+              for (ir = 0; ir <= nr; ir++)
+                Jrow[ir] += prow[ir];
+            }
+        }
+      }
     }
 
   if (EM_problem->modes & FL_TE_FIELDS)
@@ -220,6 +299,19 @@ void add_particle_currents(
       if (!EM_problem->Jphi)
         bomb("Jphi array is unexpectedly NULL in add_particle_currents", NULL);
       /* add Jphi currents */
+#pragma omp parallel num_threads(nThreads)
+      {
+      long ip, iz, ir, it;
+      double fp, fm, Jm, Jp, Q_over_piDzDr2, QVG;
+      double *myJ;
+#ifdef _OPENMP
+      it = omp_get_thread_num();
+#else
+      it = 0;
+#endif
+      myJ = JPart + it * nCells;
+      memset(myJ, 0, sizeof(*myJ) * nCells);
+#pragma omp for schedule(static)
       for (ip = 0; ip < beam->np; ip++)
         {
           if (!(beam->status[ip] & PART_ACTIVE))
@@ -281,15 +373,28 @@ void add_particle_currents(
               fp = 0;
             }
           /* distribute current density to grid points */
-          EM_problem->Jphi[iz][ir] += fm * Jm;
+          myJ[iz * nrStride + ir] += fm * Jm;
           if (EM_problem->modes & FL_LONGIT_SMEAR)
-            EM_problem->Jphi[iz + 1][ir] += fp * Jm;
+            myJ[(iz + 1) * nrStride + ir] += fp * Jm;
           if (EM_problem->modes & FL_RADIAL_SMEAR)
             {
-              EM_problem->Jphi[iz][ir + 1] += fm * Jp;
+              myJ[iz * nrStride + ir + 1] += fm * Jp;
               if (EM_problem->modes & FL_LONGIT_SMEAR)
-                EM_problem->Jphi[iz + 1][ir + 1] += fp * Jp;
+                myJ[(iz + 1) * nrStride + ir + 1] += fp * Jp;
             }
         }
+      /* implicit barrier above: all scatters are complete */
+#pragma omp for schedule(static)
+      for (iz = 0; iz <= nz; iz++)
+        {
+          double *Jrow = EM_problem->Jphi[iz];
+          for (it = 0; it < nThreads; it++)
+            {
+              double *prow = JPart + it * nCells + iz * nrStride;
+              for (ir = 0; ir <= nr; ir++)
+                Jrow[ir] += prow[ir];
+            }
+        }
+      }
     }
 }
