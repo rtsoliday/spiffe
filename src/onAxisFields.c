@@ -260,6 +260,7 @@ void addOffAxisExpansionFields(double *Ez, double *Er, double *Bphi,
                 }
             }
         }
+      /* callers in threaded code must supply thread-private EzMin/EzMax */
       if (*EzMin > *Ez)
         *EzMin = *Ez;
       if (*EzMax < *Ez)

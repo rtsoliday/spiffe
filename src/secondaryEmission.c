@@ -186,7 +186,8 @@ void queueSecondaryEmission(SECONDARY_EMISSION *secondaryEmission, long nSeconda
   if (SE->pMin > p || SE->pMax < p)
     return;
 
-  interpolateFields(&Ez, &Er, NULL, NULL, NULL, NULL, r, z, EM_problem);
+  interpolateFields(&Ez, &Er, NULL, NULL, NULL, NULL,
+                    &EM_problem->EzOOEMin, &EM_problem->EzOOEMax, r, z, EM_problem);
   KSecondary = me_mev * 1e6 * (sqrt(sqr(SE->emittedMomentum) + 1) - 1);
   if ((directionCode == GOING_LEFT && (Ez * EM_problem->dz * 1e-9) > KSecondary) ||
       (directionCode == GOING_RIGHT && (-1 * Ez * EM_problem->dz * 1e-9) > KSecondary) ||
