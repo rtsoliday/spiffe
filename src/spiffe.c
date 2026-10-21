@@ -16,6 +16,7 @@
  */
 #include "spiffe.h"
 #include "match_string.h"
+#include "scan.h"
 #include "rpn.h"
 #include <signal.h>
 #ifdef SUNOS4
@@ -48,7 +49,11 @@
 #define ADD_ON_AXIS_FIELDS 20
 #define DEFINE_SECONDARY_EMISSION 21
 #define DEFINE_EMITTER 22
-#define N_COMMANDS 23
+#define RPN_EXPRESSION 23
+#define RPN_LOAD 24
+#define MACRO_OUTPUT 25
+#define SEMAPHORES 26
+#define N_COMMANDS 27
 char *command[N_COMMANDS] = {
   "define_geometry",
   "define_antenna",
@@ -73,9 +78,26 @@ char *command[N_COMMANDS] = {
   "add_on_axis_fields",
   "define_secondary_emission",
   "define_emitter",
+  "rpn_expression",
+  "rpn_load",
+  "macro_output",
+  "semaphores",
 };
 
-char *USAGE = "spiffe [-threads=<number>] inputfile\nProgram by M. Borland (This is version 4.10.0, "__DATE__")";
+#define SET_THREADS 0
+#define SET_MACRO 1
+#define SET_RPN_DEFNS 2
+#define N_OPTIONS 3
+char *option[N_OPTIONS] = {
+  "threads",
+  "macro",
+  "rpnDefns",
+};
+
+/* Macro substitution can lengthen a namelist, so this must be generous. */
+#define NAMELIST_BUFLEN 65536
+
+char *USAGE = "spiffe <inputfile> [-macro=<tag>=<value>,[...]] [-rpnDefns=<filename>] [-threads=<number>]\nProgram by M. Borland (This is version 4.10.0, "__DATE__")";
 
 #if defined(CONDOR_COMPILE)
 void init_image_with_file_name(char *ckpt_file_name);
@@ -89,12 +111,17 @@ void link_date(void)
 void free_fields_memory(FIELDS *EM_problem);
 void free_beam_memory(BEAM *beam);
 
+int spiffeThreads = 1;
+
 int main(
          int argc,
          char **argv)
 {
-  int ii, j, num_threads = 1;
-    
+  int num_threads = 1;
+  SCANNED_ARG *scanned;
+  char **macroTag, **macroValue;
+  long macros;
+  char *rpnDefns = NULL;
 
   FIELDS EM_problem;        /* the electromagnetic portion of a problem */
   long n_antennae;          /* number of antennae */
@@ -117,27 +144,10 @@ int main(
   long test_beam_defined;
   FILE *fp_in;
   char *inputfile, *ptr;
-  char s[1024];
+  char s[NAMELIST_BUFLEN];
   NAMELIST_TEXT namelist_text;
-  long i;
+  long i, j;
 
-    // Process -threads option
-    for (ii = 1; ii < argc; ii++) {
-      if (strncmp(argv[ii], "-threads=", 9) == 0) {
-        num_threads = atoi(argv[ii] + 9);
-        // remove this argument
-        for (j = ii; j < argc - 1; j++)
-          argv[j] = argv[j + 1];
-        argc--;
-        break;
-      }
-    }
-    if (num_threads > 0) {
-  #ifdef _OPENMP
-      omp_set_num_threads(num_threads);
-  #endif
-    }
-  
   if (!SDDS_CheckTableStructureSize(sizeof(SDDS_TABLE)))
     {
       fprintf(stderr, "table structure size is inconsistent\n");
@@ -145,19 +155,80 @@ int main(
       exit(1);
     }
 
-  if (argc != 2)
+  macros = 1;
+  if (!(macroTag = malloc(sizeof(*macroTag))) ||
+      !(macroValue = malloc(sizeof(*macroValue))))
+    bomb("memory allocation failure setting up default macro tag/value pairs", NULL);
+  macroTag[0] = "INPUTFILENAME";
+  macroValue[0] = NULL; /* filled in once the input file is known */
+
+  argc = scanargs(&scanned, argc, argv);
+  inputfile = NULL;
+  for (i = 1; i < argc; i++)
+    {
+      if (scanned[i].arg_type == OPTION)
+        {
+          switch (match_string(scanned[i].list[0], option, N_OPTIONS, 0))
+            {
+            case SET_THREADS:
+              if (scanned[i].n_items != 2 || sscanf(scanned[i].list[1], "%d", &num_threads) != 1 ||
+                  num_threads < 1)
+                bomb("invalid -threads syntax", USAGE);
+              break;
+            case SET_MACRO:
+              if ((scanned[i].n_items -= 1) < 1)
+                bomb("invalid -macro syntax", USAGE);
+              if (!(macroTag = SDDS_Realloc(macroTag, sizeof(*macroTag) * (macros + scanned[i].n_items))) ||
+                  !(macroValue = SDDS_Realloc(macroValue, sizeof(*macroValue) * (macros + scanned[i].n_items))))
+                bomb("memory allocation failure (-macro)", NULL);
+              for (j = 0; j < scanned[i].n_items; j++)
+                {
+                  macroTag[macros] = scanned[i].list[j + 1];
+                  if (!(macroValue[macros] = strchr(macroTag[macros], '=')))
+                    bomb("invalid -macro syntax", USAGE);
+                  macroValue[macros][0] = 0;
+                  macroValue[macros] += 1;
+                  macros++;
+                }
+              break;
+            case SET_RPN_DEFNS:
+              if (scanned[i].n_items != 2 || !strlen(rpnDefns = scanned[i].list[1]))
+                bomb("invalid -rpnDefns syntax", USAGE);
+              break;
+            default:
+              bomb("unknown option given", USAGE);
+              break;
+            }
+        }
+      else
+        {
+          if (inputfile)
+            bomb("too many file names listed", USAGE);
+          inputfile = scanned[i].list[0];
+        }
+    }
+
+  spiffeThreads = num_threads;
+#ifdef _OPENMP
+  omp_set_num_threads(num_threads);
+#endif
+
+  if (!inputfile)
     {
       link_date();
       bomb("no input file listed", USAGE);
     }
-  inputfile = argv[1];
+  SDDS_CopyString(&macroValue[0], inputfile);
 
-  if (getenv("RPN_DEFNS"))
-    {
-      rpn(getenv("RPN_DEFNS"));
-      if (rpn_check_error())
-        exit(1);
-    }
+  if (!rpnDefns && (rpnDefns = getenv("RPN_DEFNS")) && !strlen(rpnDefns))
+    rpnDefns = NULL;
+  /* The rpn interpreter must be primed before any namelist is parsed, since
+   * the first rpn() call treats its argument as a definitions filename.
+   * A NULL argument is a safe no-op primer.
+   */
+  rpn(rpnDefns);
+  if (rpn_check_error())
+    bomb("rpn definitions file is invalid", NULL);
 
 #if defined(CONDOR_COMPILE)
   sprintf(s, "%s.ckpt", inputfile);
@@ -210,8 +281,9 @@ int main(
 
   test_beam_defined = 0;
 
-  while (get_namelist(s, 1024, fp_in))
+  while (get_namelist(s, NAMELIST_BUFLEN, fp_in))
     {
+      substituteTagValue(s, NAMELIST_BUFLEN, macroTag, macroValue, macros);
       scan_namelist(&namelist_text, s);
       switch (match_string(namelist_text.group_name, command, N_COMMANDS, EXACT_MATCH))
         {
@@ -297,6 +369,18 @@ int main(
         case DEFINE_EMITTER:
           process_emitter_definition(&EM_problem, &emitter, &nEmitters, &namelist_text);
           break;
+        case RPN_EXPRESSION:
+          run_rpn_expression(&namelist_text);
+          break;
+        case RPN_LOAD:
+          run_rpn_load(&namelist_text, &EM_problem);
+          break;
+        case MACRO_OUTPUT:
+          doMacroOutput(&namelist_text, &EM_problem, macroTag, macroValue, macros);
+          break;
+        case SEMAPHORES:
+          process_semaphores(&namelist_text, &EM_problem);
+          break;
         default:
           printf("unknown namelist %s given.  Known namelists are:\n", namelist_text.group_name);
           for (i = 0; i < N_COMMANDS; i++)
@@ -347,6 +431,7 @@ int main(
   if (cathode)
     free(cathode);
   puts("end of input reached");
+  createDoneSemaphoreFile();
   return (0);
 }
 
