@@ -17,6 +17,8 @@
 
 static char *screen_quan[N_SCREEN_QUANS] = {
   "r", "pz", "pr", "pphi", "t", "q", "r0", "t0"};
+static char *screen_symbol[N_SCREEN_QUANS] = {
+  "r", "p$bz$n", "p$br$n", "p$b$gf$r$n", "t", "q", "r_0", "t_0"};
 static char *screen_unit[N_SCREEN_QUANS] = {
   "m", "m$be$nc", "m$be$nc", "m$be$nc", "s", "C", "m", "s"};
 
@@ -80,10 +82,18 @@ long process_screen_definition(
       sprintf(label, "spiffe screen output for run %s for particles %s-crossing z=%e m",
               EM_problem->run_name, direction, z_position);
       if (!SDDS_InitializeOutput(&(*screen_defn + n_screen_defns)->table, SDDS_BINARY, 0, label, NULL,
-                                 (*screen_defn + n_screen_defns)->filename) ||
-          !SDDS_DefineSimpleColumns(&(*screen_defn + n_screen_defns)->table, N_SCREEN_QUANS, screen_quan,
-                                    screen_unit, SDDS_DOUBLE) ||
-          !SDDS_DefineSimpleColumn(&(*screen_defn + n_screen_defns)->table, "generation", "", SDDS_SHORT) ||
+                                 (*screen_defn + n_screen_defns)->filename)) {
+          SDDS_PrintErrors(stderr, SDDS_VERBOSE_PrintErrors);
+          exit(1);
+      }
+      for (int j=0; j<N_SCREEN_QUANS; j++) {
+	if (SDDS_DefineColumn(&(*screen_defn + n_screen_defns)->table, screen_quan[j], screen_symbol[j],
+			       screen_unit[j], NULL, NULL, SDDS_DOUBLE, 0)<0) {
+          SDDS_PrintErrors(stderr, SDDS_VERBOSE_PrintErrors);
+          exit(1);
+	}
+      }
+      if (!SDDS_DefineSimpleColumn(&(*screen_defn + n_screen_defns)->table, "generation", "", SDDS_SHORT) ||
           !SDDS_DefineSimpleColumn(&(*screen_defn + n_screen_defns)->table, "particleID", "", SDDS_LONG) ||
           !SDDS_DefineSimpleColumn(&(*screen_defn + n_screen_defns)->table, "rMin", "m", SDDS_DOUBLE) ||
           !SDDS_DefineSimpleColumn(&(*screen_defn + n_screen_defns)->table, "rMax", "m", SDDS_DOUBLE) ||

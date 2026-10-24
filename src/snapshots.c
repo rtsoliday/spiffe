@@ -43,6 +43,8 @@ void process_snapshot_definition(
 #define N_SNAPSHOT_QUANS 9
 static char *snapshot_quan[N_SNAPSHOT_QUANS] = {
   "z", "r", "pz", "pr", "pphi", "q", "r0", "z0", "t0"};
+static char *snapshot_symbol[N_SNAPSHOT_QUANS] = {
+  "z", "r", "p$bz$n", "p$br$n", "p$b$gf$r$n", "q", "r$b0$n", "z$b0$n", "t$b0$n"};
 static char *snapshot_unit[N_SNAPSHOT_QUANS] = {
   "m", "m", "m$be$nc", "m$be$nc", "m$be$nc", "C", "m", "m", "s"};
 
@@ -66,9 +68,19 @@ void take_beam_snapshot(
       snapshot_defn->snapshot_index = 0;
       sprintf(dump_label, "spiffe beam snapshots for run %s", EM_problem->run_name);
       if (!SDDS_InitializeOutput(&snapshot_defn->table, SDDS_BINARY, 0, dump_label, NULL,
-                                 snapshot_defn->filename) ||
-          !SDDS_DefineSimpleColumns(&snapshot_defn->table, N_SNAPSHOT_QUANS, snapshot_quan, snapshot_unit, SDDS_DOUBLE) ||
-          !SDDS_DefineSimpleColumn(&snapshot_defn->table, "generation", "", SDDS_SHORT) ||
+                                 snapshot_defn->filename))
+        {
+          SDDS_PrintErrors(stderr, SDDS_VERBOSE_PrintErrors);
+          exit(1);
+        }
+      for (int j=0; j<N_SNAPSHOT_QUANS; j++) {
+	if (SDDS_DefineColumn(&snapshot_defn->table, snapshot_quan[j], snapshot_symbol[j], snapshot_unit[j], NULL, NULL,
+			      SDDS_DOUBLE, 0)<0) {
+          SDDS_PrintErrors(stderr, SDDS_VERBOSE_PrintErrors);
+          exit(1);
+	}
+      }
+      if (!SDDS_DefineSimpleColumn(&snapshot_defn->table, "generation", "", SDDS_SHORT) ||
           !SDDS_DefineSimpleColumn(&snapshot_defn->table, "particleID", "", SDDS_LONG) ||
           !SDDS_DefineSimpleColumn(&snapshot_defn->table, "status", "", SDDS_SHORT) ||
           SDDS_DefineParameter(&snapshot_defn->table, "Time", NULL, "s", "Time of snapshot", NULL, SDDS_DOUBLE, NULL) < 0 ||
