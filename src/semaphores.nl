@@ -8,5 +8,4 @@
     STRING started = "%s.started";
     STRING done = "%s.done";
     STRING failed = "%s.failed";
-    STRING immediate = NULL;
 #end

@@ -69,18 +69,9 @@ void process_semaphores(NAMELIST_TEXT *nl_text, FIELDS *EM_problem)
   started = "%s.started";
   done = "%s.done";
   failed = "%s.failed";
-  immediate = NULL;
 
   process_namelist(&semaphores, nl_text);
   print_namelist(stdout, &semaphores);
-
-  if (immediate && strlen(immediate))
-    {
-      immediate = composeSemaphoreName(immediate, EM_problem->rootname);
-      createSemaphoreFile(immediate);
-      free(immediate);
-      immediate = NULL;
-    }
 
   if (doneSemaphoreFile)
     free(doneSemaphoreFile);
