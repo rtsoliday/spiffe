@@ -1,10 +1,12 @@
+.DEFAULT_GOAL := all
 SDDS_REPO = $(firstword $(wildcard ../../SDDS ../../../../../epics/extensions/src/SDDS))
 ifeq ($(SDDS_REPO),)
   $(error SDDS source code not found. Run 'git clone https://github.com/rtsoliday/SDDS.git' next to the spiffe repository)
 endif
 
+ENABLE_OPENMP ?= 1
+BUNDLE_OPENMP ?= 1
 include ../Makefile.rules
-
 PROD = spiffe
 
 spiffe_SRC = advance_particles.c antenna.c cathode.c constant_fields.c \
@@ -50,8 +52,10 @@ ifeq ($(OS), Windows)
   LIB_LINK_DIRS += -LIBPATH:$(SDDS_REPO)/lib/$(OS)-$(ARCH)
 endif
 
+CUSTOM_LINK_PRODUCTS += spiffe
+BUILD_GENERATED += $(patsubst %.nl,$(OBJ_DIR)/%.h,$(wildcard *.nl))
 include ../Makefile.build
-
+$(BUILD_GENERATED): | $(OBJ_DIR)
 $(OBJ_DIR)/spiffe$(EXEEXT): $(spiffe_OBJS) $(PROD_DEPS)
 	$(LINKEXE) $(OUTPUTEXE) $(spiffe_OBJS) $(LDFLAGS) $(LIB_LINK_DIRS) $(PROD_LIBS) $(PROD_LIBS_SDDS) $(PROD_SYS_LIBS)
 	cp -f $@ $(BIN_DIR)/
